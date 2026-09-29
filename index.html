@@ -263,6 +263,7 @@ function render(){
   bind(e);
 }
 
+function offlineReady(){try{return !!(navigator.serviceWorker&&navigator.serviceWorker.controller)}catch(err){return false}}
 function homeView(){
   const f=S.filter||{mode:"all",from:"",to:""};
   const shown=filterEvents(S.events,f).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
@@ -286,7 +287,7 @@ function homeView(){
     <p class="hint" style="margin-top:10px">${f.mode==="all"?`Всего мероприятий: ${S.events.length}`:`Найдено ${shown.length} из ${S.events.length} · потрачено ${rubShort(sumAll)}`}</p></section>`:""}
   ${list||(S.events.length?'<p class="empty">За этот период мероприятий нет.</p>':'<p class="empty">Пока пусто. Создайте первое мероприятие: поездку, баню или день рождения.</p>')}
   <section class="card"><h2>Резервная копия</h2>
-    <p class="empty" style="margin-top:0">Данные хранятся только на этом устройстве. Сохраните копию в «Файлы» или отправьте себе в мессенджер, чтобы не потерять их.${S.lastBackup?` Последняя копия: ${new Date(S.lastBackup).toLocaleString("ru-RU",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})}.`:""}</p>
+    ${offlineReady()?'<p class="hint ok" style="margin:0 0 8px">Приложение сохранено на телефоне и открывается без интернета.</p>':""}<p class="empty" style="margin-top:0">Данные хранятся только на этом устройстве. Сохраните копию в «Файлы» или отправьте себе в мессенджер, чтобы не потерять их.${S.lastBackup?` Последняя копия: ${new Date(S.lastBackup).toLocaleString("ru-RU",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})}.`:""}</p>
     <div class="row-actions"><button class="btn" id="exportBtn">Сохранить копию</button><button class="btn ghost" id="importBtn">Загрузить из копии</button></div>
     <input type="file" id="importFile" accept=".json,application/json,text/plain" hidden>
     <div id="importAsk" class="form" style="margin-top:10px" hidden>
@@ -675,6 +676,9 @@ document.addEventListener("submit",ev=>{const bad=[...ev.target.querySelectorAll
   if(bad){ev.preventDefault();ev.stopImmediatePropagation();bad.classList.add("invalid");bad.placeholder=bad.placeholder.replace(/^Заполните: /,"");bad.placeholder="Заполните: "+bad.placeholder;bad.focus()}},true);
 document.addEventListener("input",ev=>{if(ev.target.classList)ev.target.classList.remove("invalid")});
 render();
+// офлайн-режим: только на настоящем сайте (не внутри Claude и не из файла)
+try{if("serviceWorker" in navigator&&window.isSecureContext&&window.top===window&&location.protocol!=="file:")
+  navigator.serviceWorker.register("sw.js").catch(()=>{})}catch(err){}
 </script>
 
 </body></html>
