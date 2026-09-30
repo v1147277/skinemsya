@@ -31,7 +31,8 @@
 [hidden]{display:none!important}
 html,body{background:var(--bg)}
 body{color:var(--ink);font:500 16px/1.45 var(--sans);padding-inline:16px;padding-block:14px 48px;-webkit-tap-highlight-color:transparent}
-.app{max-width:560px;margin:0 auto;display:grid;gap:14px;background:var(--bg)}
+.app{max-width:560px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:14px;background:var(--bg)}
+.app>*,.card>*,.form>*{min-width:0}
 .invalid{border-color:var(--owe)!important}
 
 /* логотип */
@@ -60,7 +61,11 @@ input::placeholder{color:var(--muted);-webkit-text-fill-color:var(--muted);opaci
 input:-webkit-autofill,input:-webkit-autofill:focus{-webkit-box-shadow:0 0 0 1000px var(--field) inset;-webkit-text-fill-color:var(--ink)}
 select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat;padding-right:30px}
 input[type=number]{font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
-input[type=date]{min-height:48px}
+input[type=date]{min-height:48px;padding:10px 8px 10px 12px;font-size:15px;font-variant-numeric:tabular-nums;letter-spacing:-.01em;text-align:left}
+input[type=date]::-webkit-datetime-edit,input[type=date]::-webkit-datetime-edit-fields-wrapper{padding:0}
+input[type=date]::-webkit-calendar-picker-indicator{margin:0 0 0 2px;padding:0;width:16px;height:16px;opacity:.6}
+input[type=date]::-webkit-date-and-time-value{text-align:left}
+@media (max-width:350px){.dates{grid-template-columns:1fr}}
 button{font:inherit;cursor:pointer}
 button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .btn{border:0;border-radius:999px;padding:13px 20px;background:var(--sun);color:#16151c;font-weight:800;min-height:48px;box-shadow:0 2px 0 rgba(0,0,0,.08)}
@@ -165,7 +170,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .pftable{margin-top:12px;display:grid;font-size:14px}
 .pfrow{display:grid;grid-template-columns:minmax(0,1.3fr) 1fr 1fr 1.1fr;gap:6px;padding:8px 0;border-bottom:1px solid var(--line);align-items:baseline}
 .pfrow:last-child{border-bottom:0}
-.pfrow span{font-variant-numeric:tabular-nums;font-weight:600;overflow-wrap:anywhere}
+.pfrow span{font-variant-numeric:tabular-nums;font-weight:600;overflow-wrap:anywhere;min-width:0}
 .pfrow span:not(:first-child){text-align:right;font-weight:700}
 .pfrow small{display:block;font-size:11px;font-weight:600;opacity:.85}
 .pfrow.head span{font-size:12px;color:var(--muted);font-weight:700}
@@ -198,7 +203,8 @@ input[type=number]{-moz-appearance:textfield}
 .picker{width:100%;display:flex;align-items:center;gap:10px;text-align:left;background:var(--field);color:var(--ink);border:0;box-shadow:inset 0 0 0 1.5px var(--line);border-radius:14px;padding:9px 14px;min-height:48px;font:inherit;font-size:16px;font-weight:600}
 .picker:focus-visible{box-shadow:inset 0 0 0 2px var(--accent);outline:none}
 .pk-main{flex:1;min-width:0;display:grid}
-.pk-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk-label{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere;line-height:1.25}
+.sheet-row .pk-label{display:block;-webkit-line-clamp:unset}
 .pk-ph{color:var(--muted);font-weight:500}
 .pk-sub{font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pk-chev{flex:none;width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg) translate(-2px,-2px)}
@@ -267,7 +273,7 @@ b.bad{color:var(--owe)}b.good{color:var(--get)}
 .nudge{display:block;width:100%;text-align:left;border:0;border-radius:14px;padding:10px 12px;margin:0 0 12px;background:var(--soft);color:var(--accent);font:600 13px/1.4 var(--sans)}
 .cmp{--now:var(--accent);--now-bg:color-mix(in srgb,var(--accent) 9%,transparent);--then:#8a7fa8;--then-bg:color-mix(in srgb,#8a7fa8 10%,transparent)}
 .cmp .pfrow{gap:0}
-.cmp .pfrow span{padding:0 6px}
+.cmp .pfrow span{padding:0 5px}
 .cmp .pfrow:not(.sub) span:nth-child(2){color:var(--now);background:var(--now-bg);font-weight:800}
 .cmp .pfrow:not(.sub) span:nth-child(3){color:var(--then);background:var(--then-bg);font-weight:600}
 .cmp .pfrow{padding:0;border-bottom:1px solid var(--line)}
@@ -279,7 +285,7 @@ b.bad{color:var(--owe)}b.good{color:var(--get)}
 .cat-group .pfrow:last-child{border-bottom:0}
 .cat-group .pfrow.sub span{color:var(--ink);font-size:13px;padding-top:10px}
 .cmp .pfrow.total{border-bottom:0;margin:4px 0;border-radius:14px;box-shadow:inset 0 0 0 2px var(--accent);background:var(--soft);overflow:hidden}
-.cmp .pfrow.total span{font-size:16px;font-weight:800;padding-top:12px;padding-bottom:12px}
+.cmp .pfrow.total span{font-size:clamp(12px,3.5vw,16px);font-weight:800;padding-top:12px;padding-bottom:12px}
 .cmp .pfrow.total span:first-child{padding-left:12px;color:var(--ink)}
 .cmp .pfrow.total span:nth-child(2),.cmp .pfrow.total span:nth-child(3){background:transparent}
 .imgbox{margin-top:12px;display:grid;gap:10px}
@@ -287,6 +293,17 @@ b.bad{color:var(--owe)}b.good{color:var(--get)}
 .colpill{font-style:normal;display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:800}
 .colpill.now{background:var(--accent);color:var(--accent-ink)}
 .colpill.then{background:color-mix(in srgb,#8a7fa8 22%,transparent);color:var(--then)}
+details.catrow summary{list-style:none;cursor:pointer;border-radius:10px}
+details.catrow summary::-webkit-details-marker{display:none}
+details.catrow summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.cat-chev{display:inline-block;width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);margin:0 9px 2px 1px;transition:transform .15s}
+details.catrow[open] .cat-chev{transform:rotate(45deg)}
+.cat-payers{display:grid;gap:8px;margin:10px 0 6px;padding:10px 12px;background:var(--field);border-radius:12px;box-shadow:inset 0 0 0 1px var(--line)}
+.cp-row{display:grid;grid-template-columns:26px minmax(0,1fr) 70px auto;align-items:center;gap:10px;font-size:14px;font-weight:600}
+.cp-row .ava{width:26px;height:26px;font-size:10px}
+.cp-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cp-bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.cp-bar i{display:block;height:100%;background:var(--accent);border-radius:3px}
 textarea{width:100%;font:13px ui-monospace,Menlo,monospace;border-radius:14px;padding:10px;min-height:120px}
 </style>
 
@@ -324,6 +341,9 @@ function catSplit(x){const a=kop(x.amount),ks=catsOf(x);if(!ks.length)return {""
   const m=x.catAmounts;if(m&&ks.every(k=>m[k]!=null)){const v=ks.map(k=>kop(m[k]));if(v.reduce((t,y)=>t+y,0)===a){const o={};ks.forEach((k,i)=>o[k]=v[i]);return o}}
   const base=Math.floor(a/ks.length),rem=a-base*ks.length,o={};ks.forEach((k,i)=>o[k]=base+(i<rem?1:0));return o}
 const isManual=x=>{const ks=catsOf(x);if(ks.length<2||!x.catAmounts)return false;return ks.every(k=>x.catAmounts[k]!=null)&&ks.reduce((t,k)=>t+kop(x.catAmounts[k]),0)===kop(x.amount)};
+// кто сколько заплатил в категории (с учётом деления расхода между категориями)
+function catPayers(e,k){const m={};e.expenses.forEach(x=>{const v=catSplit(x)[k];if(v)m[x.payer]=(m[x.payer]||0)+v});
+  return Object.entries(m).map(([id,a])=>({id,a,name:nameOf(e,id)})).sort((a,b)=>b.a-a.a)}
 function catTotals(e){const m={};e.expenses.forEach(x=>{Object.entries(catSplit(x)).forEach(([k,v])=>m[k]=(m[k]||0)+v)});
   const rows=CATS.filter(c=>m[c[0]]).map(c=>({k:c[0],n:c[1],a:m[c[0]]}));if(m[""])rows.push({k:"",n:"Без категории",a:m[""]});
   return {rows,any:CATS.some(c=>m[c[0]])}}
@@ -502,12 +522,15 @@ function eventView(e){
       <p class="err" id="pDelMsg" hidden style="margin-top:10px"></p><form class="form" id="addP" style="margin-top:12px"><div class="two" style="grid-template-columns:1fr auto"><input id="pName" placeholder="Имя, можно несколько через запятую" required><button class="btn">+</button></div></form></section>
       <section class="card"><h2>Мероприятие</h2><form class="form" id="editEv"><input id="evRename" value="${esc(e.name)}" aria-label="Название"><label class="lbl">Описание<textarea id="evDescEdit" class="desc-input" rows="4" maxlength="2000" placeholder="Место, маршрут, что взять с собой, договорённости">${esc(e.desc||"")}</textarea></label><div class="dates"><label>с<input id="evDate" type="date" value="${esc(e.date)}"></label><label>по<input id="evDateTo" type="date" value="${esc(e.dateTo||"")}"></label></div><div class="row-actions"><button class="btn ghost small">Сохранить</button><button type="button" class="link danger" id="delEv">Удалить мероприятие</button></div><p class="empty" id="delConfirm" hidden>Нажмите ещё раз, чтобы удалить безвозвратно.</p></form></section>`;
   }else if(t==="tr"){
-    body=`<section class="card"><h2>Отметить перевод</h2>${e.people.length>1?`<form class="form" id="addTr"><div class="three">${pickerField("trFrom","Кто переводит",peopleOpts(e),e.people[0].id)}${pickerField("trTo","Кому",peopleOpts(e),e.people[1].id)}</div><input id="trAmount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Сумма" required><p class="err" id="trErr" hidden>Выберите разных людей: кто переводит и кому.</p><button class="btn">Добавить</button></form>`:'<p class="empty">Нужно минимум два участника.</p>'}</section>
+    body=`<section class="card"><h2>Отметить перевод</h2>${e.people.length>1?`<form class="form" id="addTr"><div class="lbl">Кто переводит${pickerField("trFrom","Кто переводит",peopleOpts(e),e.people[0].id)}</div><div class="lbl">Кому${pickerField("trTo","Кому",peopleOpts(e),e.people[1].id)}</div><input id="trAmount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Сумма" required><p class="err" id="trErr" hidden>Выберите разных людей: кто переводит и кому.</p><button class="btn">Добавить</button></form>`:'<p class="empty">Нужно минимум два участника.</p>'}</section>
     <section class="card"><h2>Уже переведено</h2>${e.transfers.length?e.transfers.map(x=>`<div class="item">${ava(nameOf(e,x.from))}<div class="main">${esc(nameOf(e,x.from))}<small><span class="arrow">→</span> ${esc(nameOf(e,x.to))}</small></div><span class="sum">${rub(kop(x.amount))}</span><button class="link danger" data-del-tr="${esc(x.id)}" aria-label="Удалить">×</button></div>`).join(""):'<p class="empty">Переводов пока нет.</p>'}</section>`;
   }else{
     body=`${planCard(e,s)}
     ${(()=>{const ct=catTotals(e);if(!ct.any)return "";const mx=Math.max(...ct.rows.map(r=>r.a));
-      return `<section class="card"><h2>По категориям</h2>${ct.rows.map(r=>`<div class="catrow"><div class="catline"><span>${r.n}</span><span class="sum">${rubShort(r.a)} <small>${Math.round(r.a*100/s.total)}%</small></span></div><div class="bar"><i style="width:${Math.max(2,r.a*100/mx)}%"></i></div></div>`).join("")}</section>`})()}
+      return `<section class="card"><h2>По категориям</h2>${ct.rows.map(r=>{const ps=catPayers(e,r.k);
+        return `<details class="catrow" data-cat="${r.k}"${(view.catOpen||[]).includes(r.k)?" open":""}><summary><div class="catline"><span><i class="cat-chev" aria-hidden="true"></i>${r.n}</span><span class="sum">${rubShort(r.a)} <small>${Math.round(r.a*100/s.total)}%</small></span></div><div class="bar"><i style="width:${Math.max(2,r.a*100/mx)}%"></i></div></summary>
+          <div class="cat-payers">${ps.map(x=>`<div class="cp-row">${ava(x.name)}<span class="cp-name">${esc(x.name)}</span><span class="cp-bar"><i style="width:${Math.max(3,x.a*100/ps[0].a)}%"></i></span><span class="sum">${rubShort(x.a)}</span></div>`).join("")}</div></details>`}).join("")}
+        <p class="hint" style="margin-top:6px">Нажмите на категорию, чтобы увидеть, кто платил.</p></section>`})()}
     ${perPerson(e,s)?`<section class="card pp"><span>${perPerson(e,s).label}</span><b>${perPerson(e,s).text}</b>${perPerson(e,s).uneven?'<small>Часть расходов делилась не на всех, поэтому личные доли разные. Точные суммы в балансе ниже.</small>':""}</section>`:""}
     <section class="card"><h2>Баланс каждого</h2>${e.people.map((p,i)=>{const b=s.bal[i],st=Math.abs(b)<1?'<span class="st ok">рассчитался ✓</span>':b<0?`<span class="st owe">должен ${rubShort(-b)}</span>`:`<span class="st wait">ждёт ${rubShort(b)}</span>`;
       return `<div class="item">${ava(p.name)}<div class="main">${esc(p.name)}<small>${st}</small></div><span class="sum ${b>0?"p":b<0?"n":""}">${b>0?"+":""}${rub(b)}</span></div>`}).join("")}
@@ -574,7 +597,7 @@ function planCard(e,s){
     return `<div class="pfrow"><span>${l}</span><span>${rubShort(pl)}</span><span>${rubShort(fa)}</span><span class="${q.cls}">${q.d>=0?"−":"+"}${rubShort(Math.abs(q.d))}<small>${pct(q.p)}</small></span></div>`}).join("");
   return `<section class="card" id="planCard"><h2>План и факт</h2>${top}
     ${rows?`<div class="pftable"><div class="pfrow head"><span>Категория</span><span>План</span><span>Факт</span><span>Разница</span></div>${rows}</div>`:""}
-    <details class="plan-edit"${plan?"":" open"}><summary>${plan?"Изменить план":"Задать план"}</summary>
+    <details class="plan-edit"><summary>${plan?"Изменить план":"Задать план"}</summary>
       <form class="form" id="planForm"><label class="lbl">Бюджет на всё мероприятие, ₽<input id="planTotal" type="number" inputmode="decimal" min="0" step="1" value="${esc(e.plan||"")}" placeholder="Например, 20000"></label>
       <p class="hint">По категориям, если хотите (можно оставить пустыми):</p>
       <div class="plancats">${CATS.map(([k,l])=>`<label class="lbl">${l}<input data-plancat="${k}" type="number" inputmode="decimal" min="0" step="1" value="${esc(pc[k]||"")}"></label>`).join("")}</div>
@@ -588,8 +611,9 @@ function compareRows(e,s,o){const so=settle(o),n1=e.people.length,n2=o.people.le
   const cf1=catFact(e),cf2=catFact(o),cats=CATS.filter(c=>cf1[c[0]]||cf2[c[0]]);
   if(cats.length){rows.push({sub:true,label:"По категориям"});cats.forEach(([k,l])=>rows.push({label:l,a:cf1[k]||0,b:cf2[k]||0,money:true}))}
   return rows.map(r=>{if(r.sub||r.a==null||r.b==null)return r;const d=r.a-r.b;return Object.assign(r,{d,pc:r.b?Math.abs(d)*100/r.b:0,cls:r.neutral||!d?"":(d<0?"good":"bad")})})}
-const cmpVal=(r,v)=>v==null?"—":r.money?rubShort(v):String(v);
-const cmpDiff=r=>r.d==null?"—":`${r.d>0?"+":r.d<0?"−":""}${r.money?rubShort(Math.abs(r.d)):Math.abs(r.d)}`;
+const r100=v=>Math.round(v/100)*100;
+const cmpVal=(r,v)=>v==null?"—":r.money?rubShort(r100(v)):String(v);
+const cmpDiff=r=>r.d==null?"—":`${r.d>0?"+":r.d<0?"−":""}${r.money?rubShort(r100(Math.abs(r.d))):Math.abs(r.d)}`;
 function compareTarget(e){const sim=similarEvents(e);if(!sim.length)return {sim,o:null};let o=S.events.find(x=>x.id===e.compareWith&&x.id!==e.id);if(!o&&e.compareWith!=="none")o=sim[0].x;return {sim,o}}
 function compareCard(e,s){
   const {sim,o}=compareTarget(e);
@@ -704,8 +728,9 @@ async function compareImage(e,o,dark){
   c.fillStyle="#3b4bf5";c.font=F(800,16,1);c.textAlign="center";c.textBaseline="middle";c.fillText("₽",P+70,99);c.textAlign="left";c.textBaseline="alphabetic";
   c.fillStyle="#fff";c.font=F(800,28,1);c.fillText("скинемся",P+104,108);
   c.fillStyle="rgba(255,255,255,.8)";c.font=F(600,26);c.fillText("Сравнение мероприятий",P,172);
-  const nowT=fit(e.name,W-2*P-240,F(800,44,1)),thenT=fit(o.name,W-2*P-240,F(700,32));
-  c.fillStyle="#fff";c.font=F(800,44,1);c.fillText(nowT,P,232);
+  let nSize=44;c.font=F(800,nSize,1);while(nSize>32&&c.measureText(e.name).width>W-2*P-240){nSize-=2;c.font=F(800,nSize,1)}
+  const nowT=fit(e.name,W-2*P-240,F(800,nSize,1)),thenT=fit(o.name,W-2*P-240,F(700,32));
+  c.fillStyle="#fff";c.font=F(800,nSize,1);c.fillText(nowT,P,232);
   c.fillStyle="rgba(255,255,255,.75)";c.font=F(700,30);c.fillText("vs  "+thenT,P,280);
   c.font=F(600,22);c.fillStyle="rgba(255,255,255,.7)";
   c.fillText([e.date?periodRu(e):"",o.date?"тогда: "+periodRu(o):""].filter(Boolean).join("   ·   "),P,318);
@@ -777,8 +802,9 @@ async function summaryImage(e,dark){
   c.fillStyle="rgba(255,255,255,.8)";c.font=F(600,26);c.fillText("Итог"+(e.date?" · "+periodRu(e):""),P,178);
   const moodPic=e.mood&&MOOD_SVG[e.mood]?await svgImg(MOOD_SVG[e.mood]):null;
   const thumbUp=e.liked?await svgImg(THUMB_UP):null,thumbDown=e.disliked?await svgImg(THUMB_DOWN):null;
-  c.fillStyle="#fff";const title=fit(e.name,W-2*P-(moodPic?200:120),F(800,58,1));c.font=F(800,58,1);c.fillText(title,P,250);
-  if(moodPic)c.drawImage(moodPic,P+c.measureText(title).width+18,196,66,66);
+  c.fillStyle="#fff";const tMax=W-2*P-(moodPic?200:120);let tSize=58;c.font=F(800,tSize,1);while(tSize>40&&c.measureText(e.name).width>tMax){tSize-=2;c.font=F(800,tSize,1)}
+  const title=fit(e.name,tMax,F(800,tSize,1));c.font=F(800,tSize,1);c.fillText(title,P,250);
+  if(moodPic){const ms=Math.max(48,tSize+8);c.drawImage(moodPic,P+c.measureText(title).width+16,250-tSize*.78-(ms-tSize)/2,ms,ms)}
   c.fillStyle="rgba(255,255,255,.92)";c.font=F(700,28);
   const ppi=perPerson(e,s),head1=`${rubShort(s.total)}  ·  ${e.people.length} чел.`;
   c.fillText(head1+(ppi?"  ·  ":""),P,306);
@@ -786,6 +812,10 @@ async function summaryImage(e,dark){
     c.fillText(`${ppi.text} ${ppi.uneven?"в среднем ":""}на чел.`,x0,307)}
   let y=372;
   const cardAt=(h)=>{c.fillStyle=C.card;rr(40,y,W-80,h,32);c.fill();};
+  const twoNums=(l1,v1,c1,l2,v2,c2,yy,minX)=>{let fs=40;const fit2=()=>{c.font=F(800,fs,1);const w1=c.measureText(v1).width,w2=c.measureText(v2).width;const x2=Math.max(P+minX,P+w1+48);return {x2,ok:x2+w2<=W-P}};
+    let r=fit2();while(!r.ok&&fs>26){fs-=2;r=fit2()}
+    c.fillStyle=C.muted;c.font=F(600,24);c.fillText(l1,P,yy+118);c.fillText(l2,r.x2,yy+118);
+    c.font=F(800,fs,1);c.fillStyle=c1;c.fillText(v1,P,yy+166);c.fillStyle=c2;c.fillText(v2,r.x2,yy+166)};
   if(likedLines.length){const h=96+likedLines.length*42+10;cardAt(h);
     if(thumbUp)c.drawImage(thumbUp,P,y+26,40,40);c.fillStyle=C.muted;c.font=F(700,24);c.fillText("Что понравилось",P+(thumbUp?50:0),y+58);
     c.fillStyle=C.ink;c.font=F(600,30);likedLines.forEach((l,i)=>c.fillText(l,P,y+104+i*42));
@@ -802,8 +832,7 @@ async function summaryImage(e,dark){
     const vt=`${q.word} ${rubShort(Math.abs(q.d))} · ${pct(q.p)}`;c.font=F(800,28);const vw=c.measureText(vt).width+44;
     c.fillStyle=soft;rr(W-P-vw,y+26,vw,52,26);c.fill();c.fillStyle=col;c.textAlign="right";c.fillText(vt,W-P-22,y+62);c.textAlign="left";
     // план и факт
-    c.fillStyle=C.muted;c.font=F(600,24);c.fillText("План",P,y+118);c.fillText("Факт",P+300,y+118);
-    c.fillStyle=C.ink;c.font=F(800,40,1);c.fillText(rubShort(plan),P,y+166);c.fillText(rubShort(s.total),P+300,y+166);
+    twoNums("План",rubShort(plan),C.ink,"Факт",rubShort(s.total),C.ink,y,300);
     // шкала
     c.fillStyle=C.track;rr(P,y+192,W-2*P,16,8);c.fill();
     c.fillStyle=col;rr(P,y+192,Math.max(16,(W-2*P)*Math.min(1,s.total/plan)),16,8);c.fill();
@@ -811,7 +840,7 @@ async function summaryImage(e,dark){
   if(ct.any){
     const h=96+ct.rows.length*64,mx=Math.max(...ct.rows.map(r=>r.a));cardAt(h);
     c.fillStyle=C.muted;c.font=F(700,24);c.fillText("На что ушли деньги",P,y+58);
-    let ry=y+96;const barX=P+330,barW=W-P-250-barX;
+    let ry=y+96;c.font=F(800,30);const amtW=Math.max(...ct.rows.map(r=>c.measureText(rubShort(r.a)).width));const barX=P+330,barW=Math.max(60,W-P-78-amtW-28-barX);
     ct.rows.forEach((r,i)=>{
       c.fillStyle=C.ink;c.font=F(600,30);c.fillText(fit(r.n,310,F(600,r.n.length>14?26:30)),P,ry+30);
       c.fillStyle=C.track;rr(barX,ry+12,barW,18,9);c.fill();
@@ -823,7 +852,7 @@ async function summaryImage(e,dark){
   if(payers.length){
     const h=96+payers.length*64,mx=payers[0].a;cardAt(h);
     c.fillStyle=C.muted;c.font=F(700,24);c.fillText("Кто сколько потратил",P,y+58);
-    let ry=y+96;const barX=P+330,barW=W-P-250-barX;
+    let ry=y+96;c.font=F(800,30);const amtW=Math.max(...payers.map(r=>c.measureText(rubShort(r.a)).width));const barX=P+330,barW=Math.max(60,W-P-amtW-28-barX);
     payers.forEach(r=>{
       avaC(r.n,P+20,ry+22,20);
       c.fillStyle=C.ink;c.font=F(600,30);c.fillText(fit(r.n,260,F(600,30)),P+52,ry+32);
@@ -838,8 +867,7 @@ async function summaryImage(e,dark){
     const vt=`рассчитались ${col.done} из ${col.n}`;c.font=F(800,26);const vw=c.measureText(vt).width+44;
     c.fillStyle=good?(dark?"#153323":"#ddf6e7"):(dark?"#23264a":"#e9ebff");rr(W-P-vw,y+26,vw,52,26);c.fill();
     c.fillStyle=good?gc:C.accent;c.textAlign="right";c.fillText(vt,W-P-22,y+61);c.textAlign="left";
-    c.fillStyle=C.muted;c.font=F(600,24);c.fillText("Собрано",P,y+118);c.fillText("Осталось",P+360,y+118);
-    c.font=F(800,40,1);c.fillStyle=C.ink;c.fillText(rubShort(col.got),P,y+166);c.fillStyle=good?gc:bc;c.fillText(rubShort(col.left),P+360,y+166);
+    twoNums("Собрано",rubShort(col.got),C.ink,"Осталось",rubShort(col.left),good?gc:bc,y,360);
     c.fillStyle=C.track;rr(P,y+192,W-2*P,16,8);c.fill();c.fillStyle=gc;rr(P,y+192,Math.max(16,(W-2*P)*col.got/col.need),16,8);c.fill();
     y+=230+28}
   if(!s.plan.length){cardAt(122);c.fillStyle=C.accent;c.font=F(800,40,1);c.fillText("Все в расчёте",P,y+78);y+=150}
@@ -955,6 +983,7 @@ function bind(e){
   if($("favBtn"))$("favBtn").onclick=()=>{e.fav=!e.fav;commit()};
   [["likedInput","liked"],["dislikedInput","disliked"]].forEach(([id,key])=>{const el=$(id);if(!el)return;let t;el.addEventListener("input",ev=>{e[key]=ev.target.value.trim();clearTimeout(t);t=setTimeout(()=>{save();
     const m=$("likedSaved");if(m){m.hidden=false;setTimeout(()=>{if(m)m.hidden=true},1500)}const pv=$("textPreview");if(pv)pv.textContent=summaryText(e)},400)})});
+  document.querySelectorAll("details.catrow").forEach(d=>d.addEventListener("toggle",()=>{const k=d.dataset.cat,set=new Set(view.catOpen||[]);if(d.open)set.add(k);else set.delete(k);view.catOpen=[...set]}));
   if($("toMood"))$("toMood").onclick=()=>{const m=document.querySelector(".mood");if(m)m.scrollIntoView({behavior:"smooth",block:"start"})};
   on("[data-mood]",ev=>{const k=ev.currentTarget.dataset.mood;e.mood=e.mood===k?"":k;commit()});
   if($("meSel"))$("meSel").onchange=ev=>{e.me=ev.target.value||"";commit()};
