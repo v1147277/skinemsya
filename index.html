@@ -262,6 +262,22 @@ b.bad{color:var(--owe)}b.good{color:var(--get)}
 .lbl-ico{display:flex;align-items:center;gap:8px}
 .thumb{flex:none;width:28px;height:28px;display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.12))}
 .thumb svg{width:100%;height:100%;display:block}
+.all-btn{border:0;border-radius:999px;padding:5px 12px;font:700 13px var(--sans);background:var(--soft);color:var(--accent);margin-right:2px}
+.all-btn.on{background:var(--accent);color:var(--accent-ink)}
+.nudge{display:block;width:100%;text-align:left;border:0;border-radius:14px;padding:10px 12px;margin:0 0 12px;background:var(--soft);color:var(--accent);font:600 13px/1.4 var(--sans)}
+.cmp{--now:var(--accent);--now-bg:color-mix(in srgb,var(--accent) 9%,transparent);--then:#8a7fa8;--then-bg:color-mix(in srgb,#8a7fa8 10%,transparent)}
+.cmp .pfrow{gap:0}
+.cmp .pfrow span{padding:0 6px}
+.cmp .pfrow:not(.sub) span:nth-child(2){color:var(--now);background:var(--now-bg);font-weight:800}
+.cmp .pfrow:not(.sub) span:nth-child(3){color:var(--then);background:var(--then-bg);font-weight:600}
+.cmp .pfrow{padding:0;border-bottom:1px solid var(--line)}
+.cmp .pfrow span{padding-top:8px;padding-bottom:8px}
+.cmp .pfrow.head span:nth-child(2),.cmp .pfrow.head span:nth-child(3){background:transparent}
+.cmp .pfrow.sub span{grid-column:1/-1}
+.cmp .pfrow span:not(:first-child){white-space:nowrap}
+.colpill{font-style:normal;display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:800}
+.colpill.now{background:var(--accent);color:var(--accent-ink)}
+.colpill.then{background:color-mix(in srgb,#8a7fa8 22%,transparent);color:var(--then)}
 textarea{width:100%;font:13px ui-monospace,Menlo,monospace;border-radius:14px;padding:10px;min-height:120px}
 </style>
 
@@ -465,7 +481,7 @@ function eventView(e){
       ${catChips("cat",ed?catsOf(ed):(view.lastCats||[]))}
       <div class="catsplit" id="catSplit" hidden></div>
       <input id="expNote" placeholder="За что (необязательно)" value="${ed?esc(ed.note):""}">
-      <div class="split-head"><span>На кого делим · <b id="splitCount">${inSplit.length}</b> из ${e.people.length}</span><button type="button" class="link" id="splitAll">Все</button><button type="button" class="link" id="splitNone">Никого</button></div>
+      <div class="split-head"><span>На кого делим · <b id="splitCount">${inSplit.length}</b> из ${e.people.length}</span><button type="button" class="all-btn${inSplit.length===e.people.length?" on":""}" id="splitAll">Все</button><button type="button" class="link" id="splitNone">Никого</button></div>
       <div class="chips">${e.people.map(p=>`<label class="pick"><input type="checkbox" name="among" value="${esc(p.id)}"${inSplit.includes(p.id)?" checked":""}><span>${esc(p.name)}</span></label>`).join("")}</div>
       <p class="err" id="splitErr" hidden>Отметьте хотя бы одного человека.</p>
       <div class="row-actions"><button class="btn">${ed?"Сохранить":"Добавить"}</button>${ed?'<button type="button" class="btn ghost" id="cancelEdit">Отмена</button>':""}</div></form>`:'<p class="empty">Сначала добавьте участников.</p>'}</section>
@@ -480,21 +496,23 @@ function eventView(e){
     body=`<section class="card"><h2>Отметить перевод</h2>${e.people.length>1?`<form class="form" id="addTr"><div class="three">${pickerField("trFrom","Кто переводит",peopleOpts(e),e.people[0].id)}${pickerField("trTo","Кому",peopleOpts(e),e.people[1].id)}</div><input id="trAmount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Сумма" required><p class="err" id="trErr" hidden>Выберите разных людей: кто переводит и кому.</p><button class="btn">Добавить</button></form>`:'<p class="empty">Нужно минимум два участника.</p>'}</section>
     <section class="card"><h2>Уже переведено</h2>${e.transfers.length?e.transfers.map(x=>`<div class="item">${ava(nameOf(e,x.from))}<div class="main">${esc(nameOf(e,x.from))}<small><span class="arrow">→</span> ${esc(nameOf(e,x.to))}</small></div><span class="sum">${rub(kop(x.amount))}</span><button class="link danger" data-del-tr="${esc(x.id)}" aria-label="Удалить">×</button></div>`).join(""):'<p class="empty">Переводов пока нет.</p>'}</section>`;
   }else{
-    body=`${moodCard(e)}${collectCard(e,s)}<section class="card"><h2>Осталось перевести</h2>${s.plan.length?s.plan.map((p,i)=>`<div class="item">${ava(nameOf(e,p.from))}<div class="main">${esc(nameOf(e,p.from))}<small><span class="arrow">→</span> ${esc(nameOf(e,p.to))}</small></div><span class="sum">${rub(p.a)}</span><button class="btn ghost small" data-paid="${i}" >Оплачено</button></div>`).join(""):'<p class="empty">Все в расчёте. Можно планировать следующую поездку.</p>'}</section>
+    body=`${planCard(e,s)}
     ${(()=>{const ct=catTotals(e);if(!ct.any)return "";const mx=Math.max(...ct.rows.map(r=>r.a));
       return `<section class="card"><h2>По категориям</h2>${ct.rows.map(r=>`<div class="catrow"><div class="catline"><span>${r.n}</span><span class="sum">${rubShort(r.a)} <small>${Math.round(r.a*100/s.total)}%</small></span></div><div class="bar"><i style="width:${Math.max(2,r.a*100/mx)}%"></i></div></div>`).join("")}</section>`})()}
-    ${planCard(e,s)}
-    ${compareCard(e,s)}
     ${perPerson(e,s)?`<section class="card pp"><span>${perPerson(e,s).label}</span><b>${perPerson(e,s).text}</b>${perPerson(e,s).uneven?'<small>Часть расходов делилась не на всех, поэтому личные доли разные. Точные суммы в балансе ниже.</small>':""}</section>`:""}
     <section class="card"><h2>Баланс каждого</h2>${e.people.map((p,i)=>{const b=s.bal[i],st=Math.abs(b)<1?'<span class="st ok">рассчитался ✓</span>':b<0?`<span class="st owe">должен ${rubShort(-b)}</span>`:`<span class="st wait">ждёт ${rubShort(b)}</span>`;
       return `<div class="item">${ava(p.name)}<div class="main">${esc(p.name)}<small>${st}</small></div><span class="sum ${b>0?"p":b<0?"n":""}">${b>0?"+":""}${rub(b)}</span></div>`}).join("")}
       <p class="empty">Зелёный: ему должны. Красный: должен он.</p></section>
-    <section class="card"><h2>Отправить в чат</h2>
+    ${collectCard(e,s)}
+<section class="card"><h2>Осталось перевести</h2>${s.plan.length?s.plan.map((p,i)=>`<div class="item">${ava(nameOf(e,p.from))}<div class="main">${esc(nameOf(e,p.from))}<small><span class="arrow">→</span> ${esc(nameOf(e,p.to))}</small></div><span class="sum">${rub(p.a)}</span><button class="btn ghost small" data-paid="${i}" >Оплачено</button></div>`).join(""):'<p class="empty">Все в расчёте. Можно планировать следующую поездку.</p>'}</section>
+    <section class="card"><h2>Отправить в чат</h2>${!e.mood||!e.liked&&!e.disliked?`<button type="button" class="nudge" id="toMood">Оценка и отзывы ниже, в «Как прошло?». Заполните их до отправки, чтобы они попали в итог ↓</button>`:""}
       <div class="row-actions"><button class="btn" id="copy">Скопировать текст</button><button class="btn ghost" id="makeImg">Светлая картинка</button><button class="btn ghost" id="makeImgDark">Тёмная картинка</button><span class="empty" id="copied" hidden>Скопировано</span></div>
       <pre class="preview" id="textPreview">${esc(summaryText(e))}</pre>
       <textarea id="shareText" hidden readonly></textarea>
       <div id="imgBox" hidden><img id="imgOut" alt="Итог расчёта картинкой"><div class="row-actions"><button class="btn" id="shareImg" hidden>Отправить картинку</button><button class="btn ghost" id="saveImg" hidden>Сохранить картинку</button></div><p class="empty">На телефоне можно нажать на картинку и удерживать, затем выбрать «Сохранить» или «Поделиться».</p></div>
-    </section>`;
+    </section>
+    ${compareCard(e,s)}
+    ${moodCard(e)}`;
   }
   const tabs=[["exp","Расходы"],["mine","Мои"],["ppl","Люди"],["tr","Переводы"],["sum","Итог"]].map(([k,l])=>`<button role="tab" aria-selected="${t===k}" data-tab="${k}"${k==="sum"?' class="tab-sum"':k==="mine"?' class="tab-mine"':""}>${l}</button>`).join("");
   return `<header class="top"><button class="icon-btn" id="back" aria-label="Назад">←</button><h1>${esc(e.name)}${moodOf(e)?" "+moodIcon(e.mood):""}${e.date?`<small class="per">${esc(periodRu(e))}</small>`:""}</h1><button type="button" class="icon-btn fav-btn${e.fav?" on":""}" id="favBtn" aria-pressed="${!!e.fav}" aria-label="${e.fav?"Убрать из избранного":"Добавить в избранное"}">${e.fav?'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" fill="currentColor"/></svg>':'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>'}</button></header>
@@ -567,12 +585,12 @@ function compareCard(e,s){
       return `<div class="pfrow"><span>${label}</span><span>${f(a)}</span><span>${f(b)}</span>${diff}</div>`};
     const cf1=catFact(e),cf2=catFact(o);
     const cats=CATS.filter(c=>cf1[c[0]]||cf2[c[0]]).map(([k,l])=>row(l,cf1[k]||0,cf2[k]||0,true)).join("");
-    table=`<div class="pftable cmp"><div class="pfrow head"><span></span><span>Сейчас</span><span>Тогда</span><span>Разница</span></div>
+    table=`<div class="pftable cmp"><div class="pfrow head"><span></span><span><i class="colpill now">Сейчас</i></span><span><i class="colpill then">Тогда</i></span><span>Разница</span></div>
       ${row("Всего",s.total,so.total,true)}${row("Людей",n1,n2,false,true)}${row("Дней",d1||null,d2||null,false,true)}
-      ${row("На человека",n1?Math.round(s.total/n1):null,n2?Math.round(so.total/n2):null,true)}
-      ${d1&&d2&&n1&&n2?row("На чел. в день",Math.round(s.total/n1/d1),Math.round(so.total/n2/d2),true):""}
+      ${row("На человека",n1?Math.round(s.total/n1/100)*100:null,n2?Math.round(so.total/n2/100)*100:null,true)}
+      ${d1&&d2&&n1&&n2?row("На чел. в день",Math.round(s.total/n1/d1/100)*100,Math.round(so.total/n2/d2/100)*100,true):""}
       ${cats?`<div class="pfrow sub"><span>По категориям</span></div>${cats}`:""}</div>
-      <p class="hint">Зелёный: сейчас дешевле, красный: дороже. Проценты считаются от прошлого мероприятия.</p>`}
+      <p class="hint">Синие цифры: сейчас, серые: тогда. В «Разнице» зелёный значит сейчас дешевле, красный дороже. Проценты от прошлого мероприятия.</p>`}
   return `<section class="card"><h2>Сравнить с прошлым</h2>${pickerField("cmpSel","Сравнить с",cmpOpts,o?o.id:"none")}
     ${table}</section>`;
 }
@@ -803,7 +821,7 @@ function bind(e){
   const commit=()=>{save();render()};
   if($("addExp")){
     const boxes=[...document.querySelectorAll('input[name=among]')];
-    const upd=()=>{$("splitCount").textContent=boxes.filter(b=>b.checked).length;$("splitErr").hidden=true};
+    const upd=()=>{const n=boxes.filter(b=>b.checked).length;$("splitCount").textContent=n;$("splitErr").hidden=true;$("splitAll").classList.toggle("on",n===boxes.length)};
     boxes.forEach(b=>b.onchange=upd);
     $("splitAll").onclick=()=>{boxes.forEach(b=>b.checked=true);upd()};
     $("splitNone").onclick=()=>{boxes.forEach(b=>b.checked=false);upd()};
@@ -872,6 +890,7 @@ function bind(e){
   if($("favBtn"))$("favBtn").onclick=()=>{e.fav=!e.fav;commit()};
   [["likedInput","liked"],["dislikedInput","disliked"]].forEach(([id,key])=>{const el=$(id);if(!el)return;let t;el.addEventListener("input",ev=>{e[key]=ev.target.value.trim();clearTimeout(t);t=setTimeout(()=>{save();
     const m=$("likedSaved");if(m){m.hidden=false;setTimeout(()=>{if(m)m.hidden=true},1500)}const pv=$("textPreview");if(pv)pv.textContent=summaryText(e)},400)})});
+  if($("toMood"))$("toMood").onclick=()=>{const m=document.querySelector(".mood");if(m)m.scrollIntoView({behavior:"smooth",block:"start"})};
   on("[data-mood]",ev=>{const k=ev.currentTarget.dataset.mood;e.mood=e.mood===k?"":k;commit()});
   if($("meSel"))$("meSel").onchange=ev=>{e.me=ev.target.value||"";commit()};
   if($("mineForm")){
