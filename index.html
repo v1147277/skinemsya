@@ -83,6 +83,10 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .tabs{display:grid;grid-template-columns:1.15fr .8fr .75fr 1.15fr .8fr;background:var(--card);border-radius:999px;padding:4px;gap:2px;box-shadow:0 1px 0 var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:2}
 .tabs button{border:0;background:transparent;color:var(--muted);border-radius:999px;padding:10px 0;font-size:13px;font-weight:700;white-space:nowrap}
 .tabs button[aria-selected=true]{background:var(--ink);color:var(--bg)}
+.tabs button.tab-mine{color:var(--accent);background:var(--soft)}
+.tabs button.tab-mine[aria-selected=true]{background:var(--accent);color:var(--accent-ink)}
+.tabs button.tab-sum{background:var(--sun);color:#16151c;font-weight:800;margin-left:2px}
+.tabs button.tab-sum[aria-selected=true]{background:var(--sun);color:#16151c;box-shadow:inset 0 0 0 2.5px var(--ink)}
 
 /* сводка мероприятия */
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:12px 10px;background:var(--accent);color:var(--accent-ink);box-shadow:none;position:relative;overflow:hidden}
@@ -234,11 +238,14 @@ input[type=number]{-moz-appearance:textfield}
 .mood-btn span:last-child{max-width:100%;overflow-wrap:anywhere;letter-spacing:-.01em}
 @media (max-width:370px){.mood-btn{font-size:11px}}
 .mood-btn{padding:14px 4px}
-.mood-btn .em{font-size:36px;line-height:1;filter:grayscale(.6);opacity:.75;transition:transform .15s}
+.mood-btn .em{display:block;width:46px;height:46px;transform:scale(.9);transition:transform .18s cubic-bezier(.3,1.6,.5,1),filter .18s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.12))}
+.mood-btn .em svg{width:100%;height:100%;display:block}
+.mood-btn:active .em{transform:scale(.82)}
 .mood-btn.on{background:var(--soft);box-shadow:inset 0 0 0 2px var(--accent);color:var(--accent)}
-.mood-btn.on .em{filter:none;opacity:1;transform:scale(1.12)}
+.mood-btn.on .em{transform:scale(1.14);filter:drop-shadow(0 5px 8px rgba(255,150,0,.35))}
 .mood .hint{margin-top:10px}
-.em-inline{font-family:system-ui,"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;font-weight:400}
+.em-inline{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.16em}
+.em-inline svg{width:100%;height:100%;display:block}
 .fav-btn{display:grid;place-items:center;color:var(--muted)}
 .fav-btn.on{color:#f5b301}
 .fav-mark{color:#f5b301}
@@ -252,6 +259,9 @@ header.top h1{min-width:0}
 b.bad{color:var(--owe)}b.good{color:var(--get)}
 #toast{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));max-width:528px;margin:0 auto;z-index:60;background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:14px;font-size:14px;font-weight:600;opacity:0;transform:translateY(10px);pointer-events:none;transition:opacity .2s,transform .2s}
 #toast.show{opacity:1;transform:none}
+.lbl-ico{display:flex;align-items:center;gap:8px}
+.thumb{flex:none;width:28px;height:28px;display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.12))}
+.thumb svg{width:100%;height:100%;display:block}
 textarea{width:100%;font:13px ui-monospace,Menlo,monospace;border-radius:14px;padding:10px;min-height:120px}
 </style>
 
@@ -356,11 +366,15 @@ function bindCatChips(name,onChange){
 // оценка мероприятия
 const MOODS=[["great","😍","Отлично"],["ok","🙂","Удовлетворительно"],["bad","😞","Плохо"]];
 const moodOf=e=>MOODS.find(m=>m[0]===e.mood);
+// свои яркие смайлики (одинаковые на любом телефоне)
+const MOOD_SVG={great:'<svg viewBox="0 0 64 64" aria-hidden="true"><defs><radialGradient id="mgA" cx="38%" cy="30%" r="75%"><stop offset="0" stop-color="#FFF176"/><stop offset=".55" stop-color="#FFC400"/><stop offset="1" stop-color="#FF8F00"/></radialGradient><linearGradient id="mgH" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF5C7A"/><stop offset="1" stop-color="#E8123C"/></linearGradient></defs><circle cx="32" cy="32" r="30" fill="url(#mgA)"/><circle cx="32" cy="32" r="29.2" fill="none" stroke="#E07B00" stroke-opacity=".35" stroke-width="1.6"/><ellipse cx="23" cy="13.5" rx="10" ry="5" fill="#fff" opacity=".45"/><path d="M0 3.6C0-.6 5.6-2.4 7.5 1.6 9.4-2.4 15-.6 15 3.6 15 8.6 7.5 13 7.5 13S0 8.6 0 3.6Z" transform="translate(13 19) scale(1.05)" fill="url(#mgH)"/><path d="M0 3.6C0-.6 5.6-2.4 7.5 1.6 9.4-2.4 15-.6 15 3.6 15 8.6 7.5 13 7.5 13S0 8.6 0 3.6Z" transform="translate(35.2 19) scale(1.05)" fill="url(#mgH)"/><circle cx="17.5" cy="22.5" r="1.8" fill="#fff" opacity=".7"/><circle cx="39.7" cy="22.5" r="1.8" fill="#fff" opacity=".7"/><path d="M16 37.5C19 50 45 50 48 37.5Z" fill="#6B2508"/><path d="M24 46.2C27.5 42.5 36.5 42.5 40 46.2 36 49.4 28 49.4 24 46.2Z" fill="#FF6F8B"/><path d="M17.6 38.2H46.4" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".9"/></svg>',ok:'<svg viewBox="0 0 64 64" aria-hidden="true"><defs><radialGradient id="mgB" cx="38%" cy="30%" r="75%"><stop offset="0" stop-color="#FFF59D"/><stop offset=".55" stop-color="#FFD02A"/><stop offset="1" stop-color="#FFA000"/></radialGradient></defs><circle cx="32" cy="32" r="30" fill="url(#mgB)"/><circle cx="32" cy="32" r="29.2" fill="none" stroke="#E08A00" stroke-opacity=".35" stroke-width="1.6"/><ellipse cx="23" cy="13.5" rx="10" ry="5" fill="#fff" opacity=".45"/><ellipse cx="23" cy="27" rx="3.8" ry="5.4" fill="#5A2A08"/><ellipse cx="41" cy="27" rx="3.8" ry="5.4" fill="#5A2A08"/><circle cx="24.2" cy="25.2" r="1.3" fill="#fff"/><circle cx="42.2" cy="25.2" r="1.3" fill="#fff"/><circle cx="15" cy="38" r="5.5" fill="#FF6F61" opacity=".45"/><circle cx="49" cy="38" r="5.5" fill="#FF6F61" opacity=".45"/><path d="M21 39.5C25 47 39 47 43 39.5" fill="none" stroke="#5A2A08" stroke-width="4" stroke-linecap="round"/></svg>',bad:'<svg viewBox="0 0 64 64" aria-hidden="true"><defs><radialGradient id="mgC" cx="38%" cy="30%" r="75%"><stop offset="0" stop-color="#FFF3A0"/><stop offset=".55" stop-color="#FFC940"/><stop offset="1" stop-color="#F29A1F"/></radialGradient><linearGradient id="mgT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7FDBFF"/><stop offset="1" stop-color="#1E90FF"/></linearGradient></defs><circle cx="32" cy="32" r="30" fill="url(#mgC)"/><circle cx="32" cy="32" r="29.2" fill="none" stroke="#D98300" stroke-opacity=".35" stroke-width="1.6"/><ellipse cx="23" cy="13.5" rx="10" ry="5" fill="#fff" opacity=".45"/><path d="M15.5 21.5L26 19" stroke="#5A2A08" stroke-width="3" stroke-linecap="round"/><path d="M48.5 21.5L38 19" stroke="#5A2A08" stroke-width="3" stroke-linecap="round"/><ellipse cx="22.5" cy="29" rx="3.6" ry="4.6" fill="#5A2A08"/><ellipse cx="41.5" cy="29" rx="3.6" ry="4.6" fill="#5A2A08"/><path d="M21.5 47.5C25 40.5 39 40.5 42.5 47.5" fill="none" stroke="#5A2A08" stroke-width="4" stroke-linecap="round"/><path d="M45.5 33C45.5 33 50.5 39.5 50.5 42.6A5 5 0 0 1 40.5 42.6C40.5 39.5 45.5 33 45.5 33Z" fill="url(#mgT)"/><ellipse cx="43.8" cy="41.5" rx="1.3" ry="2" fill="#fff" opacity=".8"/></svg>'};
+const moodIcon=(k,cls)=>MOOD_SVG[k]?`<span class="${cls||"em-inline"}" role="img" aria-label="${(MOODS.find(m=>m[0]===k)||[])[2]||""}">${MOOD_SVG[k]}</span>`:"";
+const THUMB_UP='<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="thA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE45C"/><stop offset=".6" stop-color="#FFC21A"/><stop offset="1" stop-color="#FF9A00"/></linearGradient></defs><path d="M21 29.5 30.2 12.6C31.8 9.5 37.6 9.8 37.9 14.4L36.6 26H51.8C55.8 26 58.4 29.6 57.4 33.3L53.4 51.4C52.7 54.2 50.4 56 47.5 56H21Z" fill="url(#thA)" stroke="#D97A00" stroke-width="1.6" stroke-linejoin="round"/><path d="M47 34.5H56.4M46 42H55M45 49.5H53.3" stroke="#D97A00" stroke-width="1.8" stroke-linecap="round" opacity=".75"/><path d="M26 30 32.5 17" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".55"/><rect x="6" y="27" width="14" height="31" rx="4" fill="#3B4BF5"/><rect x="9" y="30" width="3" height="10" rx="1.5" fill="#fff" opacity=".45"/></svg>',THUMB_DOWN='<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="thB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE45C"/><stop offset=".6" stop-color="#FFC21A"/><stop offset="1" stop-color="#FF9A00"/></linearGradient></defs><g transform="translate(64 64) rotate(180)"><path d="M21 29.5 30.2 12.6C31.8 9.5 37.6 9.8 37.9 14.4L36.6 26H51.8C55.8 26 58.4 29.6 57.4 33.3L53.4 51.4C52.7 54.2 50.4 56 47.5 56H21Z" fill="url(#thB)" stroke="#D97A00" stroke-width="1.6" stroke-linejoin="round"/><path d="M47 34.5H56.4M46 42H55M45 49.5H53.3" stroke="#D97A00" stroke-width="1.8" stroke-linecap="round" opacity=".75"/><path d="M26 30 32.5 17" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".55"/><rect x="6" y="27" width="14" height="31" rx="4" fill="#FF5A4E"/><rect x="9" y="30" width="3" height="10" rx="1.5" fill="#fff" opacity=".45"/></g></svg>';
 function moodCard(e){const m=moodOf(e);
-  return `<section class="card mood"><h2>Как прошло?</h2><div class="mood-row">${MOODS.map(([k,em,l])=>`<button type="button" class="mood-btn${e.mood===k?" on":""}" data-mood="${k}" aria-pressed="${e.mood===k}" aria-label="${l}" title="${l}"><span class="em">${em}</span></button>`).join("")}</div>
+  return `<section class="card mood"><h2>Как прошло?</h2><div class="mood-row">${MOODS.map(([k,em,l])=>`<button type="button" class="mood-btn${e.mood===k?" on":""}" data-mood="${k}" aria-pressed="${e.mood===k}" aria-label="${l}" title="${l}"><span class="em">${MOOD_SVG[k]}</span></button>`).join("")}</div>
     <p class="hint">${m?"Нажмите ещё раз, чтобы снять оценку.":"Оценка видна в списке мероприятий и помогает при сравнении с прошлыми."}</p>
-    <label class="lbl liked">Что понравилось?<textarea id="likedInput" class="desc-input" rows="3" maxlength="500" placeholder="Необязательно. Например: баня на дровах, закат на Катуни, шашлык от Стаса">${esc(e.liked||"")}</textarea></label>
-    <label class="lbl liked">Что не понравилось?<textarea id="dislikedInput" class="desc-input" rows="3" maxlength="500" placeholder="Необязательно. Например: долго ехали, мало дров, дорогой ужин">${esc(e.disliked||"")}</textarea></label>
+    <label class="lbl liked"><span class="lbl-ico"><span class="thumb">${THUMB_UP}</span>Что понравилось?</span><textarea id="likedInput" class="desc-input" rows="3" maxlength="500" placeholder="Необязательно. Например: баня на дровах, закат на Катуни, шашлык от Стаса">${esc(e.liked||"")}</textarea></label>
+    <label class="lbl liked"><span class="lbl-ico"><span class="thumb">${THUMB_DOWN}</span>Что не понравилось?</span><textarea id="dislikedInput" class="desc-input" rows="3" maxlength="500" placeholder="Необязательно. Например: долго ехали, мало дров, дорогой ужин">${esc(e.disliked||"")}</textarea></label>
     <p class="hint ok" id="likedSaved" hidden>Сохранено</p></section>`}
 function amongOf(e,x){const ids=e.people.map(p=>p.id);if(!Array.isArray(x.among))return ids;const f=x.among.filter(id=>ids.includes(id));return f.length?f:ids}
 function amongLabel(e,x){const a=amongOf(e,x);if(a.length===e.people.length)return "на всех";
@@ -409,7 +423,7 @@ function homeView(){
   const shown=filterEvents(S.events,f).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
   const sumAll=shown.reduce((t,e)=>t+settle(e).total,0);
   const list=shown.map(e=>{const s=settle(e);const left=s.plan.length;const per=periodRu(e);
-    return `<button class="event" data-open="${esc(e.id)}"><span class="main"><b>${e.fav?'<span class="fav-mark" aria-label="Избранное">★</span> ':""}${esc(e.name)}${moodOf(e)?` <span class="em-inline" title="${moodOf(e)[2]}">${moodOf(e)[1]}</span>`:""}</b><small>${per?esc(per)+" · ":""}${rubShort(s.total)}</small>${e.desc?`<small class="desc-line">${esc(e.desc.split("\n")[0])}</small>`:""}${e.people.length?`<span class="stack">${e.people.slice(0,5).map(p=>ava(p.name)).join("")}${e.people.length>5?`<span class="ava more">+${e.people.length-5}</span>`:""}</span>`:""}</span>${left?`<span class="pill warn">${left} перев.</span>`:`<span class="pill">в расчёте</span>`}</button>`}).join("");
+    return `<button class="event" data-open="${esc(e.id)}"><span class="main"><b>${e.fav?'<span class="fav-mark" aria-label="Избранное">★</span> ':""}${esc(e.name)}${moodOf(e)?" "+moodIcon(e.mood):""}</b><small>${per?esc(per)+" · ":""}${rubShort(s.total)}</small>${e.desc?`<small class="desc-line">${esc(e.desc.split("\n")[0])}</small>`:""}${e.people.length?`<span class="stack">${e.people.slice(0,5).map(p=>ava(p.name)).join("")}${e.people.length>5?`<span class="ava more">+${e.people.length-5}</span>`:""}</span>`:""}</span>${left?`<span class="pill warn">${left} перев.</span>`:`<span class="pill">в расчёте</span>`}</button>`}).join("");
   const modes=[["all","Все"],["fav","★ Избранное"],["month","Этот месяц"],["prev","Прошлый месяц"],["year","Этот год"],["range","Период"]];
   const today=new Date().toISOString().slice(0,10);
   return `<header class="brand"><div class="brand-row"><div class="logo" role="img" aria-label="Скинемся"><span class="coins"><i></i><i></i><i>₽</i></span><span class="word">скинем<em>ся</em></span></div><button type="button" class="icon-btn theme-btn" id="themeBtn" aria-label="Тема оформления">${THEME_ICONS[getTheme()]}</button></div><p class="tagline">Делим общие траты без неловких разговоров</p></header>
@@ -482,8 +496,8 @@ function eventView(e){
       <div id="imgBox" hidden><img id="imgOut" alt="Итог расчёта картинкой"><div class="row-actions"><button class="btn" id="shareImg" hidden>Отправить картинку</button><button class="btn ghost" id="saveImg" hidden>Сохранить картинку</button></div><p class="empty">На телефоне можно нажать на картинку и удерживать, затем выбрать «Сохранить» или «Поделиться».</p></div>
     </section>`;
   }
-  const tabs=[["exp","Расходы"],["mine","Мои"],["ppl","Люди"],["tr","Переводы"],["sum","Итог"]].map(([k,l])=>`<button role="tab" aria-selected="${t===k}" data-tab="${k}">${l}</button>`).join("");
-  return `<header class="top"><button class="icon-btn" id="back" aria-label="Назад">←</button><h1>${esc(e.name)}${moodOf(e)?` <span class="em-inline" title="${moodOf(e)[2]}">${moodOf(e)[1]}</span>`:""}${e.date?`<small class="per">${esc(periodRu(e))}</small>`:""}</h1><button type="button" class="icon-btn fav-btn${e.fav?" on":""}" id="favBtn" aria-pressed="${!!e.fav}" aria-label="${e.fav?"Убрать из избранного":"Добавить в избранное"}">${e.fav?'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" fill="currentColor"/></svg>':'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>'}</button></header>
+  const tabs=[["exp","Расходы"],["mine","Мои"],["ppl","Люди"],["tr","Переводы"],["sum","Итог"]].map(([k,l])=>`<button role="tab" aria-selected="${t===k}" data-tab="${k}"${k==="sum"?' class="tab-sum"':k==="mine"?' class="tab-mine"':""}>${l}</button>`).join("");
+  return `<header class="top"><button class="icon-btn" id="back" aria-label="Назад">←</button><h1>${esc(e.name)}${moodOf(e)?" "+moodIcon(e.mood):""}${e.date?`<small class="per">${esc(periodRu(e))}</small>`:""}</h1><button type="button" class="icon-btn fav-btn${e.fav?" on":""}" id="favBtn" aria-pressed="${!!e.fav}" aria-label="${e.fav?"Убрать из избранного":"Добавить в избранное"}">${e.fav?'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" fill="currentColor"/></svg>':'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>'}</button></header>
   <section class="card stats"><div>Потрачено<b>${rubShort(s.total)}</b></div><div>${(perPerson(e,s)||{label:"На 1 чел."}).label}<b>${(perPerson(e,s)||{text:"—"}).text}</b></div><div>Людей<b>${e.people.length}</b></div><div>${s.plan.length?"Переводов":"Статус"}<b>${s.plan.length?s.plan.length:"ок"}</b></div></section>
   ${e.desc?`<section class="card desc"><p class="desc-text${e.desc.length>160||e.desc.split("\n").length>3?" clamp":""}" id="descText">${esc(e.desc)}</p>${e.desc.length>160||e.desc.split("\n").length>3?'<button class="link" id="descMore">Показать полностью</button>':""}</section>`:""}
   <nav class="tabs" role="tablist">${tabs}</nav>${body}`;
@@ -627,7 +641,7 @@ function summaryText(e){
   L.push(`${e.name.toUpperCase()}${e.date?" · "+periodRu(e):""}`);
   L.push(`Потрачено: ${rubShort(s.total)} · участников: ${e.people.length}`);
   if(moodOf(e))L.push(`Оценка: ${moodOf(e)[1]}`);
-  [["liked","Понравилось"],["disliked","Не понравилось"]].forEach(([k,t])=>{if(!e[k])return;const ls=e[k].split(/\n+/).map(x=>x.trim()).filter(Boolean);if(ls.length===1)L.push(`${t}: ${ls[0]}`);else{L.push(t+":");ls.forEach(x=>L.push(`• ${x}`))}});
+  [["liked","👍 Понравилось"],["disliked","👎 Не понравилось"]].forEach(([k,t])=>{if(!e[k])return;const ls=e[k].split(/\n+/).map(x=>x.trim()).filter(Boolean);if(ls.length===1)L.push(`${t}: ${ls[0]}`);else{L.push(t+":");ls.forEach(x=>L.push(`• ${x}`))}});
   const ppl=perPerson(e,s);if(ppl)L.push(`${ppl.label}: ${ppl.text}`);
   const col=collectOf(e,s);if(col)L.push(col.left?`Собрано ${rubShort(col.got)} из ${rubShort(col.need)} · осталось ${rubShort(col.left)} · рассчитались ${col.done} из ${col.n}`:`Все рассчитались: собрано ${rubShort(col.need)}`);
   const payers=e.people.map((p,i)=>({n:p.name,a:s.paid[i]})).filter(x=>x.a>0).sort((a,b)=>b.a-a.a);
@@ -641,6 +655,7 @@ function summaryText(e){
 }
 
 // ---------- картинка итога ----------
+function svgImg(svg){return new Promise(res=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>res(null);im.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg.replace("<svg ",'<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" '))})}
 async function summaryImage(e,dark){
   try{await Promise.all(["800 60px Unbounded","600 24px Unbounded","500 30px Manrope","700 30px Manrope","800 30px Manrope"].map(f=>document.fonts.load(f,"Скинемся₽0")))}catch(err){}
   const s=settle(e),groups=groupsOf(e,s),W=1080,P=80;
@@ -677,7 +692,10 @@ async function summaryImage(e,dark){
   c.fillStyle="#3b4bf5";c.font=F(800,16,1);c.textAlign="center";c.textBaseline="middle";c.fillText("₽",P+70,99);c.textAlign="left";c.textBaseline="alphabetic";
   c.fillStyle="#fff";c.font=F(800,28,1);c.fillText("скинемся",P+104,108);
   c.fillStyle="rgba(255,255,255,.8)";c.font=F(600,26);c.fillText("Итог"+(e.date?" · "+periodRu(e):""),P,178);
-  c.fillStyle="#fff";c.font=F(800,58,1);c.fillText(fit(e.name,W-2*P-120,F(800,58,1)),P,250);
+  const moodPic=e.mood&&MOOD_SVG[e.mood]?await svgImg(MOOD_SVG[e.mood]):null;
+  const thumbUp=e.liked?await svgImg(THUMB_UP):null,thumbDown=e.disliked?await svgImg(THUMB_DOWN):null;
+  c.fillStyle="#fff";const title=fit(e.name,W-2*P-(moodPic?200:120),F(800,58,1));c.font=F(800,58,1);c.fillText(title,P,250);
+  if(moodPic)c.drawImage(moodPic,P+c.measureText(title).width+18,196,66,66);
   c.fillStyle="rgba(255,255,255,.92)";c.font=F(700,28);
   const ppi=perPerson(e,s),head1=`${rubShort(s.total)}  ·  ${e.people.length} чел.`;
   c.fillText(head1+(ppi?"  ·  ":""),P,306);
@@ -686,11 +704,11 @@ async function summaryImage(e,dark){
   let y=372;
   const cardAt=(h)=>{c.fillStyle=C.card;rr(40,y,W-80,h,32);c.fill();};
   if(likedLines.length){const h=96+likedLines.length*42+10;cardAt(h);
-    c.fillStyle=C.muted;c.font=F(700,24);c.fillText("Что понравилось"+(moodOf(e)?"  "+moodOf(e)[1]:""),P,y+58);
+    if(thumbUp)c.drawImage(thumbUp,P,y+26,40,40);c.fillStyle=C.muted;c.font=F(700,24);c.fillText("Что понравилось",P+(thumbUp?50:0),y+58);
     c.fillStyle=C.ink;c.font=F(600,30);likedLines.forEach((l,i)=>c.fillText(l,P,y+104+i*42));
     y+=h+28}
   if(disLines.length){const h=96+disLines.length*42+10;cardAt(h);
-    c.fillStyle=C.muted;c.font=F(700,24);c.fillText("Что не понравилось",P,y+58);
+    if(thumbDown)c.drawImage(thumbDown,P,y+30,40,40);c.fillStyle=C.muted;c.font=F(700,24);c.fillText("Что не понравилось",P+(thumbDown?50:0),y+58);
     c.fillStyle=C.ink;c.font=F(600,30);disLines.forEach((l,i)=>c.fillText(l,P,y+104+i*42));
     y+=h+28}
   if(plan){
