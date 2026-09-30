@@ -275,6 +275,12 @@ b.bad{color:var(--owe)}b.good{color:var(--get)}
 .cmp .pfrow.head span:nth-child(2),.cmp .pfrow.head span:nth-child(3){background:transparent}
 .cmp .pfrow.sub span{grid-column:1/-1}
 .cmp .pfrow span:not(:first-child){white-space:nowrap}
+.cmp .pfrow.total{border-bottom:0;margin:4px 0;border-radius:14px;box-shadow:inset 0 0 0 2px var(--accent);background:var(--soft);overflow:hidden}
+.cmp .pfrow.total span{font-size:16px;font-weight:800;padding-top:12px;padding-bottom:12px}
+.cmp .pfrow.total span:first-child{padding-left:12px;color:var(--ink)}
+.cmp .pfrow.total span:nth-child(2),.cmp .pfrow.total span:nth-child(3){background:transparent}
+.imgbox{margin-top:12px;display:grid;gap:10px}
+.imgbox img{width:100%;border-radius:14px;box-shadow:0 1px 0 var(--line)}
 .colpill{font-style:normal;display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:800}
 .colpill.now{background:var(--accent);color:var(--accent-ink)}
 .colpill.then{background:color-mix(in srgb,#8a7fa8 22%,transparent);color:var(--then)}
@@ -571,26 +577,28 @@ function planCard(e,s){
       <div class="plancats">${CATS.map(([k,l])=>`<label class="lbl">${l}<input data-plancat="${k}" type="number" inputmode="decimal" min="0" step="1" value="${esc(pc[k]||"")}"></label>`).join("")}</div>
       <div class="row-actions"><button class="btn small">Сохранить план</button>${plan||catPlans.length?'<button type="button" class="link danger" id="planClear">Убрать план</button>':""}</div></form></details></section>`;
 }
+// строки сравнения: {label,a,b,money,neutral,total,sub}
+function compareRows(e,s,o){const so=settle(o),n1=e.people.length,n2=o.people.length,d1=daysOf(e),d2=daysOf(o),r100=v=>Math.round(v/100)*100;
+  const rows=[{label:"Всего",a:s.total,b:so.total,money:true,total:true},{label:"Людей",a:n1,b:n2,neutral:true},{label:"Дней",a:d1||null,b:d2||null,neutral:true},
+    {label:"На человека",a:n1?r100(s.total/n1):null,b:n2?r100(so.total/n2):null,money:true}];
+  if(d1&&d2&&n1&&n2)rows.push({label:"На чел. в день",a:r100(s.total/n1/d1),b:r100(so.total/n2/d2),money:true});
+  const cf1=catFact(e),cf2=catFact(o),cats=CATS.filter(c=>cf1[c[0]]||cf2[c[0]]);
+  if(cats.length){rows.push({sub:true,label:"По категориям"});cats.forEach(([k,l])=>rows.push({label:l,a:cf1[k]||0,b:cf2[k]||0,money:true}))}
+  return rows.map(r=>{if(r.sub||r.a==null||r.b==null)return r;const d=r.a-r.b;return Object.assign(r,{d,pc:r.b?Math.abs(d)*100/r.b:0,cls:r.neutral||!d?"":(d<0?"good":"bad")})})}
+const cmpVal=(r,v)=>v==null?"—":r.money?rubShort(v):String(v);
+const cmpDiff=r=>r.d==null?"—":`${r.d>0?"+":r.d<0?"−":""}${r.money?rubShort(Math.abs(r.d)):Math.abs(r.d)}`;
+function compareTarget(e){const sim=similarEvents(e);if(!sim.length)return {sim,o:null};let o=S.events.find(x=>x.id===e.compareWith&&x.id!==e.id);if(!o&&e.compareWith!=="none")o=sim[0].x;return {sim,o}}
 function compareCard(e,s){
-  const sim=similarEvents(e);
+  const {sim,o}=compareTarget(e);
   if(!sim.length)return `<section class="card"><h2>Сравнить с прошлым</h2><p class="hint">Сравнивать пока не с чем: нужно ещё хотя бы одно мероприятие.</p></section>`;
-  let o=S.events.find(x=>x.id===e.compareWith&&x.id!==e.id);if(!o&&e.compareWith!=="none")o=sim[0].x;
   const cmpOpts=[{value:"none",label:"Не сравнивать"},...sim.map(({x,score})=>({value:x.id,label:x.name+(moodOf(x)?" "+moodOf(x)[1]:""),sub:[score?"похожее":"",x.fav?"★ избранное":"",x.date?periodRu(x):""].filter(Boolean).join(" · ")}))];
   let table="";
-  if(o){const so=settle(o),n1=e.people.length,n2=o.people.length,d1=daysOf(e),d2=daysOf(o);
-    const row=(label,a,b,money,neutral)=>{const has=a!=null&&b!=null;let diff="";
-      if(has){const d=a-b,pc=b?Math.abs(d)*100/b:0;const cls=neutral||!d?"":(d<0?"good":"bad");
-        diff=`<span class="${cls}">${d>0?"+":d<0?"−":""}${money?rubShort(Math.abs(d)):Math.abs(d)}${b&&d?`<small>${pct(pc)}</small>`:""}</span>`}else diff="<span>—</span>";
-      const f=v=>v==null?"—":money?rubShort(v):v;
-      return `<div class="pfrow"><span>${label}</span><span>${f(a)}</span><span>${f(b)}</span>${diff}</div>`};
-    const cf1=catFact(e),cf2=catFact(o);
-    const cats=CATS.filter(c=>cf1[c[0]]||cf2[c[0]]).map(([k,l])=>row(l,cf1[k]||0,cf2[k]||0,true)).join("");
+  if(o){const rows=compareRows(e,s,o);
     table=`<div class="pftable cmp"><div class="pfrow head"><span></span><span><i class="colpill now">Сейчас</i></span><span><i class="colpill then">Тогда</i></span><span>Разница</span></div>
-      ${row("Всего",s.total,so.total,true)}${row("Людей",n1,n2,false,true)}${row("Дней",d1||null,d2||null,false,true)}
-      ${row("На человека",n1?Math.round(s.total/n1/100)*100:null,n2?Math.round(so.total/n2/100)*100:null,true)}
-      ${d1&&d2&&n1&&n2?row("На чел. в день",Math.round(s.total/n1/d1/100)*100,Math.round(so.total/n2/d2/100)*100,true):""}
-      ${cats?`<div class="pfrow sub"><span>По категориям</span></div>${cats}`:""}</div>
-      <p class="hint">Синие цифры: сейчас, серые: тогда. В «Разнице» зелёный значит сейчас дешевле, красный дороже. Проценты от прошлого мероприятия.</p>`}
+      ${rows.map(r=>r.sub?`<div class="pfrow sub"><span>${r.label}</span></div>`:`<div class="pfrow${r.total?" total":""}"><span>${r.label}</span><span>${cmpVal(r,r.a)}</span><span>${cmpVal(r,r.b)}</span><span class="${r.cls||""}">${cmpDiff(r)}${r.b&&r.d?`<small>${pct(r.pc)}</small>`:""}</span></div>`).join("")}</div>
+      <p class="hint">Синие цифры: сейчас, серые: тогда. В «Разнице» зелёный значит сейчас дешевле, красный дороже. Проценты от прошлого мероприятия.</p>
+      <div class="row-actions" style="margin-top:12px"><button class="btn ghost" id="cmpImg">Светлая картинка</button><button class="btn ghost" id="cmpImgDark">Тёмная картинка</button></div>
+      <div id="cmpImgBox" class="imgbox" hidden><img id="cmpImgOut" alt="Сравнение картинкой"><div class="row-actions"><button class="btn" id="cmpShareImg" hidden>Отправить картинку</button><button class="btn ghost" id="cmpSaveImg" hidden>Сохранить картинку</button></div><p class="empty">На телефоне можно нажать на картинку и удерживать, затем выбрать «Сохранить» или «Поделиться».</p></div>`}
   return `<section class="card"><h2>Сравнить с прошлым</h2>${pickerField("cmpSel","Сравнить с",cmpOpts,o?o.id:"none")}
     ${table}</section>`;
 }
@@ -674,6 +682,57 @@ function summaryText(e){
 
 // ---------- картинка итога ----------
 function svgImg(svg){return new Promise(res=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>res(null);im.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg.replace("<svg ",'<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" '))})}
+async function compareImage(e,o,dark){
+  try{await Promise.all(["800 60px Unbounded","600 24px Unbounded","500 30px Manrope","700 30px Manrope","800 30px Manrope"].map(f=>document.fonts.load(f,"Скинемся₽0")))}catch(err){}
+  const s=settle(e),rows=compareRows(e,s,o),W=1080,P=80;
+  const C=dark?{bg:"#0e0e13",card:"#191920",ink:"#f2f2f6",muted:"#9b9aab",line:"#2a2a35",now:"#8b95ff",nowBg:"rgba(139,149,255,.12)",then:"#a79bc4",thenBg:"rgba(167,155,196,.10)",head:"#2d3bd9",good:"#3dd68c",bad:"#ff6b6e",totBg:"#23264a"}
+    :{bg:"#f3f3f7",card:"#ffffff",ink:"#16151c",muted:"#6c6b7a",line:"#e5e4ec",now:"#3b4bf5",nowBg:"rgba(59,75,245,.08)",then:"#8a7fa8",thenBg:"rgba(138,127,168,.10)",head:"#3b4bf5",good:"#12a150",bad:"#e5484d",totBg:"#e9ebff"};
+  const F=(w,px,d)=>`${w} ${px}px ${d?'"Unbounded","Manrope",system-ui,sans-serif':'"Manrope",system-ui,-apple-system,Roboto,sans-serif'}`;
+  const RH=74,SUBH=64,tableH=rows.reduce((h,r)=>h+(r.sub?SUBH:r.total?RH+14:RH),0)+80+28;
+  const H=40+300+32+tableH+60+96;
+  const cv=document.createElement("canvas");cv.width=W;cv.height=H;const c=cv.getContext("2d");
+  const rr=(x,y,w,h,r)=>{c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()};
+  const circle=(x,y,r,col)=>{c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fillStyle=col;c.fill()};
+  const fit=(t,max,font)=>{c.font=font;if(c.measureText(t).width<=max)return t;while(t.length>1&&c.measureText(t+"…").width>max)t=t.slice(0,-1);return t+"…"};
+  c.fillStyle=C.bg;c.fillRect(0,0,W,H);
+  // шапка
+  c.save();rr(40,40,W-80,300,36);c.clip();c.fillStyle=C.head;c.fillRect(40,40,W-80,300);circle(W-60,50,130,"#ffd43b");circle(W-70,350,78,"#ff7a59");c.restore();
+  circle(P+18,98,18,"#ffd43b");circle(P+44,98,18,"#ff7a59");circle(P+70,98,18,"#ffffff");
+  c.fillStyle="#3b4bf5";c.font=F(800,16,1);c.textAlign="center";c.textBaseline="middle";c.fillText("₽",P+70,99);c.textAlign="left";c.textBaseline="alphabetic";
+  c.fillStyle="#fff";c.font=F(800,28,1);c.fillText("скинемся",P+104,108);
+  c.fillStyle="rgba(255,255,255,.8)";c.font=F(600,26);c.fillText("Сравнение мероприятий",P,172);
+  const nowT=fit(e.name,W-2*P-240,F(800,44,1)),thenT=fit(o.name,W-2*P-240,F(700,32));
+  c.fillStyle="#fff";c.font=F(800,44,1);c.fillText(nowT,P,232);
+  c.fillStyle="rgba(255,255,255,.75)";c.font=F(700,30);c.fillText("vs  "+thenT,P,280);
+  c.font=F(600,22);c.fillStyle="rgba(255,255,255,.7)";
+  c.fillText([e.date?periodRu(e):"",o.date?"тогда: "+periodRu(o):""].filter(Boolean).join("   ·   "),P,318);
+  // таблица
+  let y=372;const h=tableH;c.fillStyle=C.card;rr(40,y,W-80,h,32);c.fill();
+  const xL=P,xN=560,xT=760,xD=W-P,colW=190;
+  // подсветка колонок
+  c.fillStyle=C.nowBg;c.fillRect(xN-colW+14,y+80,colW,h-108);c.fillStyle=C.thenBg;c.fillRect(xT-colW+14,y+80,colW,h-108);
+  // заголовки-плашки
+  const pill=(t,xr,bg,fg)=>{c.font=F(800,22);const w=c.measureText(t).width+32;c.fillStyle=bg;rr(xr-w,y+30,w,40,20);c.fill();c.fillStyle=fg;c.textAlign="center";c.fillText(t,xr-w/2,y+58);c.textAlign="left"};
+  pill("Сейчас",xN,C.now,dark?"#0e0e13":"#fff");pill("Тогда",xT,dark?"rgba(167,155,196,.25)":"rgba(138,127,168,.22)",C.then);
+  c.fillStyle=C.muted;c.font=F(700,22);c.textAlign="right";c.fillText("Разница",xD,y+58);c.textAlign="left";
+  let ry=y+80;
+  rows.forEach(r=>{
+    if(r.sub){c.fillStyle=C.muted;c.font=F(700,22);c.fillText("По категориям",xL,ry+44);ry+=SUBH;return}
+    const rh=r.total?RH+14:RH;
+    if(r.total){c.fillStyle=C.totBg;rr(52,ry+4,W-104,rh-8,18);c.fill();c.strokeStyle=C.now;c.lineWidth=2.5;c.stroke()}
+    else{c.fillStyle=C.line;c.fillRect(xL,ry+rh-1,W-2*P,1.5)}
+    const fs=r.total?34:28,base=ry+rh/2+fs*.35;
+    c.fillStyle=C.ink;c.font=F(r.total?800:600,fs,r.total);c.fillText(fit(r.label,xN-colW-xL-10,F(r.total?800:600,fs,r.total)),xL+(r.total?12:0),base);
+    c.textAlign="right";
+    c.fillStyle=C.now;c.font=F(800,fs);c.fillText(cmpVal(r,r.a),xN,base);
+    c.fillStyle=C.then;c.font=F(600,fs);c.fillText(cmpVal(r,r.b),xT,base);
+    c.fillStyle=r.cls==="good"?C.good:r.cls==="bad"?C.bad:C.ink;c.font=F(800,fs);c.fillText(cmpDiff(r),xD-(r.total?12:0),base-(r.b&&r.d?8:0));
+    if(r.b&&r.d){c.font=F(700,18);c.fillText(pct(r.pc),xD-(r.total?12:0),base+16)}
+    c.textAlign="left";ry+=rh});
+  c.fillStyle=C.muted;c.font=F(600,22);c.fillText("Зелёный: сейчас дешевле, красный: дороже. Проценты от прошлого мероприятия.",P,y+h+44);
+  c.font=F(600,24);c.fillText("скинемся · посчитано "+new Date().toLocaleDateString("ru-RU"),P,H-50);
+  return cv;
+}
 async function summaryImage(e,dark){
   try{await Promise.all(["800 60px Unbounded","600 24px Unbounded","500 30px Manrope","700 30px Manrope","800 30px Manrope"].map(f=>document.fonts.load(f,"Скинемся₽0")))}catch(err){}
   const s=settle(e),groups=groupsOf(e,s),W=1080,P=80;
@@ -909,14 +968,19 @@ function bind(e){
       document.querySelectorAll("[data-plancat]").forEach(i=>{if(kop(i.value)>0)e.planCats[i.dataset.plancat]=i.value});commit()};
     if($("planClear"))$("planClear").onclick=()=>{e.plan="";e.planCats={};commit()}}
   if($("cmpSel"))$("cmpSel").onchange=ev=>{e.compareWith=ev.target.value;commit()};
-  const makeImg=async dark=>{
-    const cv=await summaryImage(e,dark);$("imgOut").src=cv.toDataURL("image/png");$("imgBox").hidden=false;
-    const blob=await new Promise(r=>cv.toBlob(r,"image/png"));const fname=`itog-${(e.name||"raschet").replace(/[^\wа-яё-]+/gi,"_")}.png`;
+  const present=async(cv,ids,fname,title)=>{
+    $(ids.out).src=cv.toDataURL("image/png");$(ids.box).hidden=false;
+    const blob=await new Promise(r=>cv.toBlob(r,"image/png"));
     const file=blob&&new File([blob],fname,{type:"image/png"});
-    try{if(file&&navigator.canShare&&navigator.canShare({files:[file]})){$("shareImg").hidden=false;$("shareImg").onclick=()=>navigator.share({files:[file],title:e.name}).catch(()=>{})}}catch(err){}
+    try{if(file&&navigator.canShare&&navigator.canShare({files:[file]})){$(ids.share).hidden=false;$(ids.share).onclick=()=>navigator.share({files:[file],title}).catch(()=>{})}}catch(err){}
     let dl=null;try{dl=window.claude&&window.claude.use?await window.claude.use("downloads"):null}catch(err){}
-    if(dl&&blob){$("saveImg").hidden=false;$("saveImg").onclick=()=>dl.save({filename:fname,data:blob}).catch(()=>{})}
-    $("imgBox").scrollIntoView({behavior:"smooth",block:"start"})};
+    if(dl&&blob){$(ids.save).hidden=false;$(ids.save).onclick=()=>dl.save({filename:fname,data:blob}).catch(()=>{})}
+    $(ids.box).scrollIntoView({behavior:"smooth",block:"start"})};
+  const safeName=n=>(n||"raschet").replace(/[^\wа-яё-]+/gi,"_");
+  const makeImg=async dark=>present(await summaryImage(e,dark),{out:"imgOut",box:"imgBox",share:"shareImg",save:"saveImg"},`itog-${safeName(e.name)}.png`,e.name);
+  const makeCmpImg=async dark=>{const {o}=compareTarget(e);if(!o)return;
+    present(await compareImage(e,o,dark),{out:"cmpImgOut",box:"cmpImgBox",share:"cmpShareImg",save:"cmpSaveImg"},`sravnenie-${safeName(e.name)}.png`,e.name+" vs "+o.name)};
+  if($("cmpImg")){$("cmpImg").onclick=()=>makeCmpImg(false);$("cmpImgDark").onclick=()=>makeCmpImg(true)}
   if($("makeImg")){$("makeImg").onclick=()=>makeImg(false);$("makeImgDark").onclick=()=>makeImg(true)}
   if($("copy"))$("copy").onclick=()=>{const txt=summaryText(e),ta=$("shareText");ta.value=txt;
     const fallback=()=>{ta.hidden=false;ta.focus();ta.select();$("copied").textContent="Выделите и скопируйте текст";$("copied").hidden=false};
