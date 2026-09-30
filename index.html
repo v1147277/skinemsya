@@ -275,6 +275,9 @@ b.bad{color:var(--owe)}b.good{color:var(--get)}
 .cmp .pfrow.head span:nth-child(2),.cmp .pfrow.head span:nth-child(3){background:transparent}
 .cmp .pfrow.sub span{grid-column:1/-1}
 .cmp .pfrow span:not(:first-child){white-space:nowrap}
+.cat-group{margin-top:10px;border-radius:14px;box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--muted) 60%,var(--line));padding:0 8px 2px;background:color-mix(in srgb,var(--field) 60%,transparent)}
+.cat-group .pfrow:last-child{border-bottom:0}
+.cat-group .pfrow.sub span{color:var(--ink);font-size:13px;padding-top:10px}
 .cmp .pfrow.total{border-bottom:0;margin:4px 0;border-radius:14px;box-shadow:inset 0 0 0 2px var(--accent);background:var(--soft);overflow:hidden}
 .cmp .pfrow.total span{font-size:16px;font-weight:800;padding-top:12px;padding-bottom:12px}
 .cmp .pfrow.total span:first-child{padding-left:12px;color:var(--ink)}
@@ -595,7 +598,7 @@ function compareCard(e,s){
   let table="";
   if(o){const rows=compareRows(e,s,o);
     table=`<div class="pftable cmp"><div class="pfrow head"><span></span><span><i class="colpill now">Сейчас</i></span><span><i class="colpill then">Тогда</i></span><span>Разница</span></div>
-      ${rows.map(r=>r.sub?`<div class="pfrow sub"><span>${r.label}</span></div>`:`<div class="pfrow${r.total?" total":""}"><span>${r.label}</span><span>${cmpVal(r,r.a)}</span><span>${cmpVal(r,r.b)}</span><span class="${r.cls||""}">${cmpDiff(r)}${r.b&&r.d?`<small>${pct(r.pc)}</small>`:""}</span></div>`).join("")}</div>
+      ${rows.map((r,i)=>r.sub?`<div class="cat-group"><div class="pfrow sub"><span>${r.label}</span></div>`:`<div class="pfrow${r.total?" total":""}"><span>${r.label}</span><span>${cmpVal(r,r.a)}</span><span>${cmpVal(r,r.b)}</span><span class="${r.cls||""}">${cmpDiff(r)}${r.b&&r.d?`<small>${pct(r.pc)}</small>`:""}</span></div>`).join("")}${rows.some(r=>r.sub)?"</div>":""}</div>
       <p class="hint">Синие цифры: сейчас, серые: тогда. В «Разнице» зелёный значит сейчас дешевле, красный дороже. Проценты от прошлого мероприятия.</p>
       <div class="row-actions" style="margin-top:12px"><button class="btn ghost" id="cmpImg">Светлая картинка</button><button class="btn ghost" id="cmpImgDark">Тёмная картинка</button></div>
       <div id="cmpImgBox" class="imgbox" hidden><img id="cmpImgOut" alt="Сравнение картинкой"><div class="row-actions"><button class="btn" id="cmpShareImg" hidden>Отправить картинку</button><button class="btn ghost" id="cmpSaveImg" hidden>Сохранить картинку</button></div><p class="empty">На телефоне можно нажать на картинку и удерживать, затем выбрать «Сохранить» или «Поделиться».</p></div>`}
@@ -716,8 +719,11 @@ async function compareImage(e,o,dark){
   pill("Сейчас",xN,C.now,dark?"#0e0e13":"#fff");pill("Тогда",xT,dark?"rgba(167,155,196,.25)":"rgba(138,127,168,.22)",C.then);
   c.fillStyle=C.muted;c.font=F(700,22);c.textAlign="right";c.fillText("Разница",xD,y+58);c.textAlign="left";
   let ry=y+80;
+  const subIdx=rows.findIndex(r=>r.sub);
+  if(subIdx>=0){const top=y+80+rows.slice(0,subIdx).reduce((h,r)=>h+(r.total?RH+14:RH),0)+6,catsH=SUBH+(rows.length-subIdx-1)*RH-4;
+    c.fillStyle=dark?"rgba(255,255,255,.03)":"rgba(22,21,28,.02)";rr(52,top,W-104,catsH,20);c.fill();c.strokeStyle=dark?"#6a6a7c":"#a9a7b8";c.lineWidth=3.5;c.stroke()}
   rows.forEach(r=>{
-    if(r.sub){c.fillStyle=C.muted;c.font=F(700,22);c.fillText("По категориям",xL,ry+44);ry+=SUBH;return}
+    if(r.sub){c.fillStyle=C.ink;c.font=F(800,24);c.fillText("По категориям",xL,ry+46);ry+=SUBH;return}
     const rh=r.total?RH+14:RH;
     if(r.total){c.fillStyle=C.totBg;rr(52,ry+4,W-104,rh-8,18);c.fill();c.strokeStyle=C.now;c.lineWidth=2.5;c.stroke()}
     else{c.fillStyle=C.line;c.fillRect(xL,ry+rh-1,W-2*P,1.5)}
