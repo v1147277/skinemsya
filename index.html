@@ -331,6 +331,25 @@ details.catrow[open] .cat-chev{transform:rotate(45deg)}
 .party .plan-edit summary{color:#ffe27a}
 .party .btn{box-shadow:0 6px 16px -6px rgba(0,0,0,.35)}
 .to-sum{width:100%;margin-top:-2px}
+.help-btn{display:grid;place-items:center;font:800 18px var(--display);color:var(--accent)}
+.brand-row .icon-btn+.icon-btn{margin-left:-4px}
+.first-help{display:block;width:100%;text-align:left;border:0;border-radius:16px;padding:14px 16px;background:var(--soft);color:var(--accent);font:600 14px/1.4 var(--sans)}
+.help-intro p{margin:0 0 8px;line-height:1.55}.help-intro p:last-child{margin:0}
+.steps{margin:0;padding-left:22px;display:grid;gap:14px;line-height:1.5}
+.steps li::marker{font-weight:800;color:var(--accent)}
+.steps.small{gap:6px;margin:8px 0}
+.dots{margin:0;padding-left:18px;display:grid;gap:8px;line-height:1.5}
+.ex{margin-top:8px;padding:10px 12px;border-radius:12px;background:var(--soft);font-size:14px;line-height:1.5}
+.ex-tag{display:inline-block;margin-right:6px;padding:1px 8px;border-radius:999px;background:var(--sun);color:#16151c;font-size:11px;font-weight:800;vertical-align:1px}
+.help-sec{padding:0}
+.help-sec summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:16px;font:800 16px/1.3 var(--display);letter-spacing:-.01em}
+.help-sec summary::-webkit-details-marker{display:none}
+.help-sec summary span{flex:1}
+.help-sec summary .cat-chev{margin:0}
+.help-sec[open] summary .cat-chev{transform:rotate(45deg)}
+.help-body{padding:0 16px 16px;line-height:1.55}
+.help-body p{margin:0 0 10px}
+.help-body .ex{margin:4px 0 12px}.help-body p:last-child{margin-bottom:0}
 textarea{width:100%;font:13px ui-monospace,Menlo,monospace;border-radius:14px;padding:10px;min-height:120px}
 </style>
 
@@ -472,7 +491,7 @@ function render(){
   const root=document.getElementById("app");
   const e=S.events.find(x=>x.id===view.event);
   closeSheet();
-  root.innerHTML=e?eventView(e):homeView();
+  root.innerHTML=view.help?helpView():e?eventView(e):homeView();
   root.querySelectorAll("form").forEach(f=>f.noValidate=true);
   bind(e);
 }
@@ -491,6 +510,96 @@ try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",applyTh
 applyTheme();
 // мероприятие закончилось: последний день раньше сегодняшнего
 function isPast(e){const last=e.dateTo||e.date;if(!last)return false;const d=new Date(),t=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;return last<t}
+// ---------- инструкция
+function helpView(){
+  const ex=t=>`<div class="ex"><span class="ex-tag">Пример</span>${t}</div>`;
+  const sec=(id,title,body)=>`<details class="card help-sec" id="${id}"><summary><span>${title}</span><i class="cat-chev" aria-hidden="true"></i></summary><div class="help-body">${body}</div></details>`;
+  return `<header class="top"><button class="icon-btn" id="helpBack" aria-label="Назад">←</button><h1>Как пользоваться</h1></header>
+
+  <section class="card help-intro">
+    <p><b>«Скинемся»</b> помогает честно поделить общие траты. Вы записываете, кто сколько заплатил, а приложение само считает, кто кому и сколько должен перевести.</p>
+    <p class="hint">Разбираться долго не нужно. Достаточно четырёх шагов ниже, остальное по желанию.</p>
+  </section>
+
+  <section class="card">
+    <h2>Быстрый старт: 4 шага</h2>
+    <ol class="steps">
+      <li><b>Создайте мероприятие.</b> На главном экране в блоке «Новая тусовка» напишите название, даты и участников через запятую. Нажмите «Погнали».
+        ${ex("Название: <b>Баня, суббота</b>. Участники: <b>Вася, Петя, Коля</b>.")}</li>
+      <li><b>Вносите расходы.</b> На вкладке «Расходы» выберите, кто платил, введите сумму и нажмите «Добавить». По умолчанию сумма делится на всех.
+        ${ex("Вася заплатил за баню <b>3&nbsp;000&nbsp;₽</b>. На троих это по 1&nbsp;000&nbsp;₽. Значит, Петя и Коля должны Васе по 1&nbsp;000&nbsp;₽.")}</li>
+      <li><b>Откройте «Итог».</b> Жёлтая вкладка справа. Там видно, кто кому сколько переводит.</li>
+      <li><b>Отправьте итог в чат</b> текстом или картинкой. Когда кто-то перевёл деньги, нажмите у него «Оплачено».</li>
+    </ol>
+  </section>
+
+  ${sec("h-event","Мероприятие: даты, бюджет, описание",`
+    <p><b>Даты.</b> «С» обязательно, «по» нужно, если мероприятие длилось несколько дней.</p>
+    <p><b>Бюджет</b> необязателен. Если указать, в «Итоге» будет видно, уложились или нет.</p>
+    <p><b>Описание</b>: ссылка «Добавить описание». Сюда удобно записать место, маршрут, что взять с собой.</p>
+    <p><b>Изменить</b> название, даты или описание можно на вкладке «Люди», в блоке «Мероприятие».</p>
+    <p><b>Избранное.</b> Звёздочка справа вверху на экране мероприятия. Потом такие мероприятия легко найти фильтром «★ Избранное».</p>`)}
+
+  ${sec("h-exp","Расходы: категории и «на кого делим»",`
+    <p><b>Категории</b> показывают, на что ушли деньги. Можно отметить <b>несколько</b>, если в одном чеке и продукты, и транспорт. Редкие категории спрятаны под «Ещё».</p>
+    ${ex("Чек на <b>3&nbsp;000&nbsp;₽</b>: продукты и алкоголь. Отметьте обе категории, сумма разделится поровну, по 1&nbsp;500&nbsp;₽. Если нужно точнее, нажмите «Указать суммы вручную».")}
+    <p><b>На кого делим.</b> Если расход не общий, снимите отметки с тех, кто не участвовал. Кнопка «Все» отмечает всех сразу.</p>
+    ${ex("Шашлык за <b>1&nbsp;200&nbsp;₽</b> ели только Петя и Коля. Оставьте отмеченными их двоих. Тогда каждый из них должен по 600&nbsp;₽, а Васи этот расход не касается.")}
+    <p><b>Исправить расход:</b> нажмите на него в списке. <b>Удалить:</b> крестик справа.</p>
+    <p>Внизу вкладки есть кнопка «Итог →» для быстрого перехода к итогам.</p>`)}
+
+  ${sec("h-mine","«Мои»: свои траты по ходу",`
+    <p>Личный блокнот, чтобы не забыть мелкие траты. Записали сразу, как заплатили, а в общие расходы перенесли потом, одной кнопкой.</p>
+    <ol class="steps small">
+      <li>Один раз выберите себя в поле «Это вы».</li>
+      <li>Записывайте траты: за что, сумма, категория.</li>
+      <li>Покупку только для себя отметьте «Личное». Её не будут делить.</li>
+      <li>В конце нажмите «Перенести в общие расходы».</li>
+    </ol>
+    ${ex("За день: бензин 2&nbsp;000&nbsp;₽, уголь 300&nbsp;₽, сувенир 500&nbsp;₽ (личное). В общие уйдёт <b>2&nbsp;300&nbsp;₽</b>, сувенир останется вашим.")}
+    <p>Передумали? Кнопка «Вернуть в журнал» убирает перенесённое из общих расходов.</p>`)}
+
+  ${sec("h-people","Люди и переводы",`
+    <p><b>Добавить участника:</b> вкладка «Люди», имя внизу, можно сразу несколько через запятую.</p>
+    <p><b>Удалить:</b> крестик у имени. Если у человека есть расходы, приложение переспросит, потому что они удалятся вместе с ним.</p>
+    <p><b>Перевод вручную:</b> вкладка «Переводы», если кто-то перевёл часть суммы или перевёл раньше.</p>
+    ${ex("Коля должен Васе 1&nbsp;000&nbsp;₽, но перевёл пока 500&nbsp;₽. Внесите перевод <b>Коля → Вася, 500&nbsp;₽</b>. В итоге останется долг 500&nbsp;₽.")}`)}
+
+  ${sec("h-sum","Итог: что где смотреть",`
+    <ul class="dots">
+      <li><b>План и факт.</b> Сравнение с бюджетом. Зелёным «Сэкономили», красным «Перерасход».</li>
+      <li><b>По категориям.</b> Сколько ушло на продукты, баню и так далее. <b>Нажмите на категорию</b>, чтобы увидеть, кто платил.</li>
+      <li><b>На 1 чел.</b> Общая сумма, делённая на всех.</li>
+      <li><b>Баланс каждого.</b> Плюс: человеку должны. Минус: должен он. Плашки «рассчитался ✓», «должен», «ждёт».</li>
+      <li><b>Сбор денег.</b> Сколько уже перевели и сколько осталось, «рассчитались 3 из 5».</li>
+      <li><b>Осталось перевести.</b> Кто кому и сколько. Перевели? Жмите «Оплачено».</li>
+      <li><b>Отправить в чат.</b> Текст или картинка, светлая или тёмная.</li>
+      <li><b>Сравнить с прошлым.</b> Похожее мероприятие подставляется само. Синим сейчас, серым тогда. Есть картинка для чата.</li>
+      <li><b>Как прошло?</b> Смайлик и отзывы «Что понравилось» и «Что не понравилось». Заполните до отправки итога в чат, чтобы они попали в картинку.</li>
+    </ul>
+    ${ex("Бюджет <b>20&nbsp;000&nbsp;₽</b>, потратили <b>18&nbsp;500&nbsp;₽</b>. В «Плане и факте» будет: «Сэкономили 1&nbsp;500&nbsp;₽ · 7,5%».")}`)}
+
+  ${sec("h-home","Главный экран, история и тема",`
+    <p><b>История</b> (кнопка вверху) прокручивает к списку прошлых мероприятий. Фильтр «Показать»: все, избранное, этот месяц, прошлый, этот год или свой период.</p>
+    <p>Закончившееся мероприятие открывается сразу на «Итоге», текущее на «Расходах».</p>
+    <p><b>Тема:</b> круглая кнопка справа от логотипа. Можно светлую, тёмную или как в телефоне.</p>`)}
+
+  ${sec("h-data","Где хранятся данные и как не потерять",`
+    <p>Всё хранится <b>только на вашем телефоне</b>. На сервер ничего не уходит, друзья ваших записей не видят.</p>
+    <p>Если удалить иконку или очистить данные браузера, записи пропадут. Поэтому время от времени нажимайте <b>«Сохранить копию»</b> внизу главного экрана и отправляйте файл себе в мессенджер.</p>
+    <p><b>Новый телефон:</b> поставьте приложение и нажмите «Загрузить из копии».</p>
+    <p><b>Один расчёт на компанию:</b> ведёт один человек и отправляет итог в чат. Или ведущий сохраняет копию и пересылает файл, остальные загружают его через «Добавить к текущим».</p>
+    <p>После первого открытия приложение работает <b>без интернета</b>, например в горах.</p>`)}
+
+  ${sec("h-faq","Частые вопросы",`
+    <p><b>Почему у кого-то на копейку больше?</b> Сумма не всегда делится ровно, лишняя копейка достаётся кому-то одному.</p>
+    <p><b>Как поставить на телефон?</b> Откройте ссылку в браузере. На Android: меню ⋮ → «Добавить на главный экран». На iPhone: «Поделиться» → «На экран „Домой“».</p>
+    <p><b>Ошибся в сумме.</b> Нажмите на расход в списке, исправьте и сохраните.</p>
+    <p><b>Кто-то перевёл больше, чем должен.</b> Внесите перевод как есть. В балансе будет видно переплату, приложение подскажет, кому вернуть.</p>`)}
+
+  <button type="button" class="btn" id="helpDone">Понятно, к приложению</button>`;
+}
+
 function offlineReady(){try{return !!(navigator.serviceWorker&&navigator.serviceWorker.controller)}catch(err){return false}}
 function homeView(){
   const f=S.filter||{mode:"all",from:"",to:""};
@@ -500,7 +609,7 @@ function homeView(){
     return `<button class="event" data-open="${esc(e.id)}"><span class="main"><b>${e.fav?'<span class="fav-mark" aria-label="Избранное">★</span> ':""}${esc(e.name)}${moodOf(e)?" "+moodIcon(e.mood):""}</b><small>${per?esc(per)+" · ":""}${rubShort(s.total)}</small>${e.desc?`<small class="desc-line">${esc(e.desc.split("\n")[0])}</small>`:""}${e.people.length?`<span class="stack">${e.people.slice(0,5).map(p=>ava(p.name)).join("")}${e.people.length>5?`<span class="ava more">+${e.people.length-5}</span>`:""}</span>`:""}</span>${left?`<span class="pill warn">${left} перев.</span>`:`<span class="pill">в расчёте</span>`}</button>`}).join("");
   const modes=[["all","Все"],["fav","★ Избранное"],["month","Этот месяц"],["prev","Прошлый месяц"],["year","Этот год"],["range","Период"]];
   const today=new Date().toISOString().slice(0,10);
-  return `<header class="brand"><div class="brand-row"><div class="logo" role="img" aria-label="Скинемся"><span class="coins"><i></i><i></i><i>₽</i></span><span class="word">скинем<em>ся</em></span></div><button type="button" class="icon-btn theme-btn" id="themeBtn" aria-label="Тема оформления">${THEME_ICONS[getTheme()]}</button></div><div class="tag-row"><p class="tagline">Делим общие траты без неловких разговоров</p>${S.events.length?`<button type="button" class="hist-btn" id="histBtn"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 7v5l3.2 2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>История</button>`:""}</div></header>
+  return `<header class="brand"><div class="brand-row"><div class="logo" role="img" aria-label="Скинемся"><span class="coins"><i></i><i></i><i>₽</i></span><span class="word">скинем<em>ся</em></span></div><button type="button" class="icon-btn help-btn" id="helpBtn" aria-label="Как пользоваться">?</button><button type="button" class="icon-btn theme-btn" id="themeBtn" aria-label="Тема оформления">${THEME_ICONS[getTheme()]}</button></div><div class="tag-row"><p class="tagline">Делим общие траты без неловких разговоров</p>${S.events.length?`<button type="button" class="hist-btn" id="histBtn"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 7v5l3.2 2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>История</button>`:""}</div></header>
   <section class="card party"><span class="confetti" aria-hidden="true"></span><h2 class="party-title">Новая тусовка <span class="party-em">🎉</span></h2><form class="form" id="newEvent">
     <input id="evName" placeholder="Название, например «Алтай, август»" required>
     <div class="dates"><label>с<input id="evFrom" type="date" value="${today}"></label><label>по<input id="evTo" type="date"></label></div>
@@ -513,7 +622,7 @@ function homeView(){
     <div class="chips">${modes.map(([k,l])=>`<label class="pick"><input type="radio" name="fmode" value="${k}"${f.mode===k?" checked":""}><span>${l}</span></label>`).join("")}</div>
     ${f.mode==="range"?`<div class="dates" style="margin-top:10px"><label>с<input id="fFrom" type="date" value="${esc(f.from)}"></label><label>по<input id="fTo" type="date" value="${esc(f.to)}"></label></div>`:""}
     <p class="hint" style="margin-top:10px">${f.mode==="fav"?(shown.length?`В избранном: ${shown.length} · потрачено ${rubShort(sumAll)}`:"В избранном пока пусто. Откройте мероприятие и нажмите звёздочку вверху."):f.mode==="all"?`Всего мероприятий: ${S.events.length}`:`Найдено ${shown.length} из ${S.events.length} · потрачено ${rubShort(sumAll)}`}</p></section>`:""}
-  ${list||(S.events.length?'<p class="empty">За этот период мероприятий нет.</p>':'<p class="empty">Пока пусто. Создайте первое мероприятие: поездку, встречу или совместную закупку.</p>')}
+  ${list||(S.events.length?'<p class="empty">За этот период мероприятий нет.</p>':'<p class="empty">Пока пусто. Создайте первое мероприятие: поездку, встречу или совместную закупку.</p><button type="button" class="first-help" id="firstHelp">Впервые здесь? <b>Как пользоваться за 1 минуту →</b></button>')}
   <section class="card"><h2>Резервная копия</h2>
     ${offlineReady()?'<p class="hint ok" style="margin:0 0 8px">Приложение сохранено на телефоне и открывается без интернета.</p>':""}<p class="empty" style="margin-top:0">Данные хранятся только на этом устройстве. Сохраните копию в «Файлы» или отправьте себе в мессенджер, чтобы не потерять их.${S.lastBackup?` Последняя копия: ${new Date(S.lastBackup).toLocaleString("ru-RU",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})}.`:""}</p>
     <div class="row-actions"><button class="btn" id="exportBtn">Сохранить копию</button><button class="btn ghost" id="importBtn">Загрузить из копии</button></div>
@@ -924,11 +1033,13 @@ async function summaryImage(e,dark){
 function bind(e){
   const $=id=>document.getElementById(id),on=(sel,fn)=>document.querySelectorAll(sel).forEach(el=>el.addEventListener("click",fn));
   const splitNames=v=>v.split(/[,\n]/).map(x=>x.trim()).filter(Boolean);
+  if(view.help){const back=()=>{view.help=false;render();window.scrollTo(0,0)};$("helpBack").onclick=back;$("helpDone").onclick=back;return}
   if(!e){
     $("newEvent").onsubmit=ev=>{ev.preventDefault();let d1=$("evFrom").value,d2=$("evTo").value;if(d1&&d2&&d2<d1)[d1,d2]=[d2,d1];if(!d1&&d2){d1=d2;d2=""}
       const ne={id:uid(),name:$("evName").value.trim(),date:d1,dateTo:d2&&d2!==d1?d2:"",plan:$("evPlan").value||"",planCats:{},desc:$("evDesc").value.trim(),people:splitNames($("evPeople").value).map(n=>({id:uid(),name:n})),expenses:[],transfers:[]};
       S.events.unshift(ne);save();view={event:ne.id,tab:ne.people.length?"exp":"ppl"};render()};
     on("[data-open]",ev=>{const id=ev.currentTarget.dataset.open,x=S.events.find(y=>y.id===id);view={event:id,tab:x&&isPast(x)?"sum":"exp"};render();window.scrollTo(0,0)});
+    const openHelp=()=>{view.help=true;render();window.scrollTo(0,0)};$("helpBtn").onclick=openHelp;if($("firstHelp"))$("firstHelp").onclick=openHelp;
     if($("histBtn"))$("histBtn").onclick=()=>{const h=$("historyBlock");if(h)h.scrollIntoView({behavior:"smooth",block:"start"})};
     const setF=patch=>{S.filter=Object.assign({mode:"all",from:"",to:""},S.filter,patch);save();render()};
     document.querySelectorAll('input[name=fmode]').forEach(r=>r.onchange=()=>setF({mode:r.value}));
