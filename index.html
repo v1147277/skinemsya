@@ -304,6 +304,33 @@ details.catrow[open] .cat-chev{transform:rotate(45deg)}
 .cp-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cp-bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
 .cp-bar i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.tag-row{display:flex;align-items:center;gap:10px}
+.tag-row .tagline{flex:1;min-width:0}
+.hist-btn{flex:none;display:inline-flex;align-items:center;gap:5px;border:0;border-radius:999px;padding:6px 11px;background:var(--soft);color:var(--accent);font:700 13px var(--sans)}
+.party{position:relative;overflow:hidden;background:linear-gradient(135deg,#3b4bf5 0%,#5a3df0 55%,#7a3fe0 100%);color:#fff;box-shadow:0 10px 30px -12px rgba(59,75,245,.6)}
+:root[data-theme="dark"] .party{background:linear-gradient(135deg,#2733c4 0%,#4127b8 60%,#5a2aa6 100%)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .party{background:linear-gradient(135deg,#2733c4 0%,#4127b8 60%,#5a2aa6 100%)}}
+.confetti{position:absolute;inset:0;pointer-events:none;background:
+ radial-gradient(circle at calc(100% - 26px) 20px,#ffd43b 0 7px,transparent 8px),
+ radial-gradient(circle at calc(100% - 54px) 44px,#ff7a59 0 4px,transparent 5px),
+ radial-gradient(circle at calc(100% - 14px) 52px,#2bd4a4 0 4px,transparent 5px),
+ radial-gradient(circle at calc(100% - 46px) 10px,#fff 0 2.5px,transparent 3.5px),
+ radial-gradient(circle at 14px calc(100% - 10px),#ff7a59 0 5px,transparent 6px),
+ radial-gradient(circle at 40px calc(100% - 6px),#ffd43b 0 3px,transparent 4px),
+ radial-gradient(circle at calc(100% - 18px) calc(100% - 9px),#4cc2ff 0 4px,transparent 5px)}
+.confetti::before,.confetti::after{content:"";position:absolute;height:5px;border-radius:3px}
+.confetti::before{top:30px;right:30px;width:18px;background:#2bd4a4;transform:rotate(-30deg)}
+.confetti::after{top:8px;right:72px;width:14px;background:#ff7a59;transform:rotate(25deg)}
+.party>*:not(.confetti){position:relative}
+.party-title{font:800 21px/1.2 var(--display);letter-spacing:-.02em;color:#fff;margin:2px 0 14px}
+.party-em{font-family:system-ui,"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.party input,.party textarea{background-color:#fff;color:#16151c;-webkit-text-fill-color:#16151c;border-color:transparent;color-scheme:light}
+.party input::placeholder,.party textarea::placeholder{color:#7a7988;-webkit-text-fill-color:#7a7988}
+.party input:focus,.party textarea:focus{background-color:#fff;color:#16151c;-webkit-text-fill-color:#16151c;border-color:#ffd43b}
+.party .dates label,.party .hint{color:rgba(255,255,255,.85)}
+.party .plan-edit summary{color:#ffe27a}
+.party .btn{box-shadow:0 6px 16px -6px rgba(0,0,0,.35)}
+.to-sum{width:100%;margin-top:-2px}
 textarea{width:100%;font:13px ui-monospace,Menlo,monospace;border-radius:14px;padding:10px;min-height:120px}
 </style>
 
@@ -462,6 +489,8 @@ function applyTheme(){const t=getTheme(),r=document.documentElement;if(t==="auto
   requestAnimationFrame(()=>{try{const bg=getComputedStyle(document.body).backgroundColor;document.querySelectorAll('meta[name="theme-color"]').forEach(m=>{m.removeAttribute("media");m.setAttribute("content",bg)})}catch(err){}})}
 try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",applyTheme)}catch(err){}
 applyTheme();
+// мероприятие закончилось: последний день раньше сегодняшнего
+function isPast(e){const last=e.dateTo||e.date;if(!last)return false;const d=new Date(),t=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;return last<t}
 function offlineReady(){try{return !!(navigator.serviceWorker&&navigator.serviceWorker.controller)}catch(err){return false}}
 function homeView(){
   const f=S.filter||{mode:"all",from:"",to:""};
@@ -471,8 +500,8 @@ function homeView(){
     return `<button class="event" data-open="${esc(e.id)}"><span class="main"><b>${e.fav?'<span class="fav-mark" aria-label="Избранное">★</span> ':""}${esc(e.name)}${moodOf(e)?" "+moodIcon(e.mood):""}</b><small>${per?esc(per)+" · ":""}${rubShort(s.total)}</small>${e.desc?`<small class="desc-line">${esc(e.desc.split("\n")[0])}</small>`:""}${e.people.length?`<span class="stack">${e.people.slice(0,5).map(p=>ava(p.name)).join("")}${e.people.length>5?`<span class="ava more">+${e.people.length-5}</span>`:""}</span>`:""}</span>${left?`<span class="pill warn">${left} перев.</span>`:`<span class="pill">в расчёте</span>`}</button>`}).join("");
   const modes=[["all","Все"],["fav","★ Избранное"],["month","Этот месяц"],["prev","Прошлый месяц"],["year","Этот год"],["range","Период"]];
   const today=new Date().toISOString().slice(0,10);
-  return `<header class="brand"><div class="brand-row"><div class="logo" role="img" aria-label="Скинемся"><span class="coins"><i></i><i></i><i>₽</i></span><span class="word">скинем<em>ся</em></span></div><button type="button" class="icon-btn theme-btn" id="themeBtn" aria-label="Тема оформления">${THEME_ICONS[getTheme()]}</button></div><p class="tagline">Делим общие траты без неловких разговоров</p></header>
-  <section class="card"><h2>Новая тусовка</h2><form class="form" id="newEvent">
+  return `<header class="brand"><div class="brand-row"><div class="logo" role="img" aria-label="Скинемся"><span class="coins"><i></i><i></i><i>₽</i></span><span class="word">скинем<em>ся</em></span></div><button type="button" class="icon-btn theme-btn" id="themeBtn" aria-label="Тема оформления">${THEME_ICONS[getTheme()]}</button></div><div class="tag-row"><p class="tagline">Делим общие траты без неловких разговоров</p>${S.events.length?`<button type="button" class="hist-btn" id="histBtn"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 7v5l3.2 2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>История</button>`:""}</div></header>
+  <section class="card party"><span class="confetti" aria-hidden="true"></span><h2 class="party-title">Новая тусовка <span class="party-em">🎉</span></h2><form class="form" id="newEvent">
     <input id="evName" placeholder="Название, например «Алтай, август»" required>
     <div class="dates"><label>с<input id="evFrom" type="date" value="${today}"></label><label>по<input id="evTo" type="date"></label></div>
     <p class="hint">Дата «по» нужна, если мероприятие длилось несколько дней.</p>
@@ -480,7 +509,7 @@ function homeView(){
     <input id="evPlan" type="number" inputmode="decimal" min="0" step="1" placeholder="Бюджет, ₽ (необязательно)">
     <details class="plan-edit desc-add"><summary>Добавить описание</summary><textarea id="evDesc" class="desc-input" rows="3" maxlength="2000" placeholder="Место, маршрут, что взять с собой, договорённости"></textarea></details>
     <button class="btn">Погнали</button></form></section>
-  ${S.events.length?`<section class="card"><h2>Показать</h2>
+  ${S.events.length?`<section class="card" id="historyBlock"><h2>Показать</h2>
     <div class="chips">${modes.map(([k,l])=>`<label class="pick"><input type="radio" name="fmode" value="${k}"${f.mode===k?" checked":""}><span>${l}</span></label>`).join("")}</div>
     ${f.mode==="range"?`<div class="dates" style="margin-top:10px"><label>с<input id="fFrom" type="date" value="${esc(f.from)}"></label><label>по<input id="fTo" type="date" value="${esc(f.to)}"></label></div>`:""}
     <p class="hint" style="margin-top:10px">${f.mode==="fav"?(shown.length?`В избранном: ${shown.length} · потрачено ${rubShort(sumAll)}`:"В избранном пока пусто. Откройте мероприятие и нажмите звёздочку вверху."):f.mode==="all"?`Всего мероприятий: ${S.events.length}`:`Найдено ${shown.length} из ${S.events.length} · потрачено ${rubShort(sumAll)}`}</p></section>`:""}
@@ -514,7 +543,8 @@ function eventView(e){
       <div class="chips">${e.people.map(p=>`<label class="pick"><input type="checkbox" name="among" value="${esc(p.id)}"${inSplit.includes(p.id)?" checked":""}><span>${esc(p.name)}</span></label>`).join("")}</div>
       <p class="err" id="splitErr" hidden>Отметьте хотя бы одного человека.</p>
       <div class="row-actions"><button class="btn">${ed?"Сохранить":"Добавить"}</button>${ed?'<button type="button" class="btn ghost" id="cancelEdit">Отмена</button>':""}</div></form>`:'<p class="empty">Сначала добавьте участников.</p>'}</section>
-    <section class="card"><h2>Расходы</h2>${e.expenses.length?e.expenses.map(x=>`<div class="item${x.id===view.edit?" editing":""}"><button class="main edit" data-edit-exp="${esc(x.id)}">${esc(nameOf(e,x.payer))}<small>${x.fromMine?'<span class="tag">из моих</span> ':""}${catsOf(x).length?`<span class="cat">${esc(catsLabel(x))}</span>${isManual(x)?' <span class="tag">суммы вручную</span>':""} · `:""}${x.note?esc(x.note)+" · ":""}${esc(amongLabel(e,x))}</small></button><span class="sum">${rub(kop(x.amount))}</span><button class="link danger" data-del-exp="${esc(x.id)}" aria-label="Удалить">×</button></div>`).join(""):'<p class="empty">Расходов пока нет.</p>'}${e.expenses.length?'<p class="empty">Нажмите на расход, чтобы изменить его.</p>':""}</section>`;
+    <section class="card"><h2>Расходы</h2>${e.expenses.length?e.expenses.map(x=>`<div class="item${x.id===view.edit?" editing":""}"><button class="main edit" data-edit-exp="${esc(x.id)}">${esc(nameOf(e,x.payer))}<small>${x.fromMine?'<span class="tag">из моих</span> ':""}${catsOf(x).length?`<span class="cat">${esc(catsLabel(x))}</span>${isManual(x)?' <span class="tag">суммы вручную</span>':""} · `:""}${x.note?esc(x.note)+" · ":""}${esc(amongLabel(e,x))}</small></button><span class="sum">${rub(kop(x.amount))}</span><button class="link danger" data-del-exp="${esc(x.id)}" aria-label="Удалить">×</button></div>`).join(""):'<p class="empty">Расходов пока нет.</p>'}${e.expenses.length?'<p class="empty">Нажмите на расход, чтобы изменить его.</p>':""}</section>
+    ${e.expenses.length?'<button type="button" class="btn to-sum" id="toSum">Итог →</button>':""}`;
   }else if(t==="mine"){
     body=mineView(e);
   }else if(t==="ppl"){
@@ -898,7 +928,8 @@ function bind(e){
     $("newEvent").onsubmit=ev=>{ev.preventDefault();let d1=$("evFrom").value,d2=$("evTo").value;if(d1&&d2&&d2<d1)[d1,d2]=[d2,d1];if(!d1&&d2){d1=d2;d2=""}
       const ne={id:uid(),name:$("evName").value.trim(),date:d1,dateTo:d2&&d2!==d1?d2:"",plan:$("evPlan").value||"",planCats:{},desc:$("evDesc").value.trim(),people:splitNames($("evPeople").value).map(n=>({id:uid(),name:n})),expenses:[],transfers:[]};
       S.events.unshift(ne);save();view={event:ne.id,tab:ne.people.length?"exp":"ppl"};render()};
-    on("[data-open]",ev=>{view={event:ev.currentTarget.dataset.open,tab:"exp"};render()});
+    on("[data-open]",ev=>{const id=ev.currentTarget.dataset.open,x=S.events.find(y=>y.id===id);view={event:id,tab:x&&isPast(x)?"sum":"exp"};render();window.scrollTo(0,0)});
+    if($("histBtn"))$("histBtn").onclick=()=>{const h=$("historyBlock");if(h)h.scrollIntoView({behavior:"smooth",block:"start"})};
     const setF=patch=>{S.filter=Object.assign({mode:"all",from:"",to:""},S.filter,patch);save();render()};
     document.querySelectorAll('input[name=fmode]').forEach(r=>r.onchange=()=>setF({mode:r.value}));
     if($("fFrom")){$("fFrom").onchange=()=>setF({from:$("fFrom").value});$("fTo").onchange=()=>setF({to:$("fTo").value})}
@@ -984,6 +1015,7 @@ function bind(e){
   [["likedInput","liked"],["dislikedInput","disliked"]].forEach(([id,key])=>{const el=$(id);if(!el)return;let t;el.addEventListener("input",ev=>{e[key]=ev.target.value.trim();clearTimeout(t);t=setTimeout(()=>{save();
     const m=$("likedSaved");if(m){m.hidden=false;setTimeout(()=>{if(m)m.hidden=true},1500)}const pv=$("textPreview");if(pv)pv.textContent=summaryText(e)},400)})});
   document.querySelectorAll("details.catrow").forEach(d=>d.addEventListener("toggle",()=>{const k=d.dataset.cat,set=new Set(view.catOpen||[]);if(d.open)set.add(k);else set.delete(k);view.catOpen=[...set]}));
+  if($("toSum"))$("toSum").onclick=()=>{view.tab="sum";view.edit=null;render();window.scrollTo({top:0,behavior:"smooth"})};
   if($("toMood"))$("toMood").onclick=()=>{const m=document.querySelector(".mood");if(m)m.scrollIntoView({behavior:"smooth",block:"start"})};
   on("[data-mood]",ev=>{const k=ev.currentTarget.dataset.mood;e.mood=e.mood===k?"":k;commit()});
   if($("meSel"))$("meSel").onchange=ev=>{e.me=ev.target.value||"";commit()};
