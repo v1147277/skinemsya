@@ -1,5 +1,5 @@
 // Скинемся: офлайн-режим. Приложение сохраняется на телефоне и открывается без сети.
-const CACHE = "skinemsya-v1";
+const CACHE = "skinemsya-v2";
 const SHELL = ["./", "./index.html"];
 
 self.addEventListener("install", e => {
@@ -36,7 +36,7 @@ self.addEventListener("fetch", e => {
   if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") {
     e.respondWith(
       caches.match(req).then(hit => hit || fetch(req).then(res => {
-        const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); return res;
+        if (res.ok || res.type === "opaque") { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); } return res;
       }).catch(() => new Response("", { status: 504 })))
     );
   }
