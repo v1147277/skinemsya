@@ -125,6 +125,10 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 /* список мероприятий */
 .event{width:100%;text-align:left;background:var(--card);border:0;border-radius:var(--r);padding:16px;color:var(--ink);display:flex;gap:12px;align-items:center;box-shadow:0 1px 0 var(--line)}
 .event:active{transform:scale(.99)}
+.ev-wrap{position:relative}
+.ev-wrap .event{align-items:flex-start;min-height:104px}
+.ev-del{position:absolute;right:12px;bottom:12px;width:38px;height:38px;border-radius:50%;border:0;padding:0;background:var(--owe-soft);color:var(--owe);display:grid;place-items:center}
+.ev-del:active{transform:scale(.92)}
 .event .main{flex:1;min-width:0}
 .event b{font:800 17px/1.2 var(--display);letter-spacing:-.02em;display:block}
 .event small{color:var(--muted);display:block;font-size:13px;margin-top:4px}
@@ -260,6 +264,18 @@ input[type=number]{-moz-appearance:textfield}
 .em-inline svg{width:100%;height:100%;display:block}
 .fav-btn{display:grid;place-items:center;color:var(--muted)}
 .fav-btn.on{color:#f5b301}
+.del-btn{display:grid;place-items:center;color:var(--owe)}
+header.top .icon-btn+.icon-btn{margin-left:-4px}
+@media (max-width:359px){header.top{gap:8px}header.top .icon-btn{width:40px;height:40px}}
+.btn.danger{background:#d93b40;color:#fff}
+.del-info{background:var(--field);border-radius:16px;padding:12px 14px;margin:0 0 12px;box-shadow:inset 0 0 0 1px var(--line)}
+.del-info b{display:block;font:800 17px/1.25 var(--display);letter-spacing:-.02em;overflow-wrap:anywhere}
+.del-info small{display:block;color:var(--muted);font-size:13px;margin-top:4px}
+.del-warn{margin:0 4px 14px;font-size:14px;line-height:1.45;color:var(--muted)}
+.del-actions{display:grid;gap:8px}
+#toast.has-act{pointer-events:auto;display:flex;align-items:center;gap:12px}
+#toast .t-txt{flex:1;min-width:0}
+#toast .t-act{flex:none;border:0;border-radius:999px;padding:8px 14px;background:var(--sun);color:#16151c;font:800 14px var(--sans)}
 .fav-mark{color:#f5b301}
 header.top h1{min-width:0}
 .liked{margin-top:14px}
@@ -371,8 +387,11 @@ let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!S||!Array.isArray(S.events))S=seed();
 let view={event:null,tab:"exp"};
 // сохранение; если браузер не дал сохранить (память заполнена, приватный режим) — предупреждаем
-function toast(t){let el=document.getElementById("toast");if(!el){el=document.createElement("div");el.id="toast";el.setAttribute("role","status");document.body.appendChild(el)}
-  el.textContent=t;el.classList.add("show");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("show"),6000)}
+function toast(t,act,fn,ms){let el=document.getElementById("toast");if(!el){el=document.createElement("div");el.id="toast";el.setAttribute("role","status");document.body.appendChild(el)}
+  el.textContent="";el.classList.toggle("has-act",!!act);
+  if(act){const sp=document.createElement("span");sp.className="t-txt";sp.textContent=t;const b=document.createElement("button");b.type="button";b.className="t-act";b.textContent=act;
+    b.onclick=()=>{clearTimeout(el._t);el.classList.remove("show","has-act");fn()};el.append(sp,b)}else el.textContent=t;
+  el.classList.add("show");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("show","has-act"),ms||6000)}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast("Не удалось сохранить изменения: браузер не даёт записать данные. Сохраните копию на главном экране.")}};
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const num=k=>{const neg=k<0,a=Math.abs(k),r=Math.floor(a/100),c=a%100;const rs=String(r).replace(/\B(?=(\d{3})+(?!\d))/g,"\u00a0");return (neg?"-":"")+rs+","+String(c).padStart(2,"0")};
@@ -445,6 +464,25 @@ function openSheet(title,options,sel,onPick){
     if(ev.target.closest("[data-close]"))closeSheet()});
   const on=wrap.querySelector(".sheet-row.on")||wrap.querySelector(".sheet-row");if(on)on.focus({preventScroll:true});
 }
+// удаление мероприятия: кнопка-корзина → окно подтверждения → удаление; ещё 10 секунд можно вернуть
+const TRASH_SVG='<svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12.2A2 2 0 0 0 9 21h6a2 2 0 0 0 2-1.8L18 7M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function askDeleteEvent(e,fromList){
+  closeSheet();const s=settle(e),per=periodRu(e),n=e.expenses.length;
+  const wrap=document.createElement("div");wrap.className="sheet-wrap";wrap.id="sheet";
+  wrap.innerHTML=`<div class="sheet-bg" data-close></div><div class="sheet" role="alertdialog" aria-modal="true" aria-labelledby="delTitle" aria-describedby="delWarn"><div class="grab" aria-hidden="true"></div>
+    <h3 id="delTitle">Удалить мероприятие?</h3>
+    <div class="del-info"><b>${esc(e.name)}</b><small>${per?esc(per)+" · ":""}потрачено ${rubShort(s.total)} · ${e.people.length} чел. · расходов: ${n}</small></div>
+    <p class="del-warn" id="delWarn">Удалятся все расходы, переводы, «Мои» записи и отзывы. Ещё 10 секунд после удаления его можно вернуть, потом только из резервной копии.</p>
+    <div class="del-actions"><button type="button" class="btn danger" id="delYes">Удалить навсегда</button><button type="button" class="btn ghost" data-close id="delNo">Отмена</button></div></div>`;
+  document.body.appendChild(wrap);requestAnimationFrame(()=>wrap.classList.add("open"));
+  wrap.addEventListener("click",ev=>{if(ev.target.closest("[data-close]"))closeSheet()});
+  wrap.querySelector("#delYes").onclick=()=>{closeSheet();deleteEvent(e.id,fromList)};
+  wrap.querySelector("#delNo").focus({preventScroll:true});
+}
+function deleteEvent(id,fromList){const y=fromList?window.scrollY:0;const i=S.events.findIndex(x=>x.id===id);if(i<0)return;const [gone]=S.events.splice(i,1);
+  view={event:null,tab:"exp"};save();render();window.scrollTo(0,y);
+  toast(`«${gone.name}» удалено`,"Вернуть",()=>{if(!S.events.some(x=>x.id===gone.id)){S.events.splice(Math.min(i,S.events.length),0,gone);save()}
+    if(fromList){view={event:null,tab:"exp"};render();window.scrollTo(0,y)}else{view={event:gone.id,tab:isPast(gone)?"sum":"exp"};render();window.scrollTo(0,0)}},10000)}
 function closeSheet(){const w=document.getElementById("sheet");if(w)w.remove()}
 document.addEventListener("keydown",ev=>{if(ev.key==="Escape")closeSheet()});
 document.addEventListener("click",ev=>{const b=ev.target.closest("[data-picker]");if(!b)return;const id=b.dataset.picker,cfg=PICKERS[id],inp=document.getElementById(id);if(!cfg||!inp)return;
@@ -591,6 +629,7 @@ function helpView(){
   ${sec("h-home","Главный экран, история и тема",`
     <p><b>История</b> (кнопка вверху) прокручивает к списку прошлых мероприятий. Фильтр «Показать»: все, избранное, этот месяц, прошлый, этот год или свой период.</p>
     <p>Закончившееся мероприятие открывается сразу на «Итоге», текущее на «Расходах».</p>
+    <p><b>Удалить мероприятие:</b> красная корзина на карточке в списке или в шапке открытого мероприятия. Приложение переспросит, а после удаления ещё 10 секунд можно нажать «Вернуть».</p>
     <p><b>Тема:</b> круглая кнопка справа от логотипа. Можно светлую, тёмную или как в телефоне.</p>`)}
 
   ${sec("h-data","Где хранятся данные и как не потерять",`
@@ -615,7 +654,7 @@ function homeView(){
   const shown=filterEvents(S.events,f).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
   const sumAll=shown.reduce((t,e)=>t+settle(e).total,0);
   const list=shown.map(e=>{const s=settle(e);const left=s.plan.length;const per=periodRu(e);
-    return `<button class="event" data-open="${esc(e.id)}"><span class="main"><b>${e.fav?'<span class="fav-mark" aria-label="Избранное">★</span> ':""}${esc(e.name)}${moodOf(e)?" "+moodIcon(e.mood):""}</b><small>${per?esc(per)+" · ":""}${rubShort(s.total)}</small>${e.desc?`<small class="desc-line">${esc(e.desc.split("\n")[0])}</small>`:""}${e.people.length?`<span class="stack">${e.people.slice(0,5).map(p=>ava(p.name)).join("")}${e.people.length>5?`<span class="ava more">+${e.people.length-5}</span>`:""}</span>`:""}</span>${left?`<span class="pill warn">${left} перев.</span>`:`<span class="pill">в расчёте</span>`}</button>`}).join("");
+    return `<div class="ev-wrap"><button class="event" data-open="${esc(e.id)}"><span class="main"><b>${e.fav?'<span class="fav-mark" aria-label="Избранное">★</span> ':""}${esc(e.name)}${moodOf(e)?" "+moodIcon(e.mood):""}</b><small>${per?esc(per)+" · ":""}${rubShort(s.total)}</small>${e.desc?`<small class="desc-line">${esc(e.desc.split("\n")[0])}</small>`:""}${e.people.length?`<span class="stack">${e.people.slice(0,5).map(p=>ava(p.name)).join("")}${e.people.length>5?`<span class="ava more">+${e.people.length-5}</span>`:""}</span>`:""}</span>${left?`<span class="pill warn">${left} перев.</span>`:`<span class="pill">в расчёте</span>`}</button><button type="button" class="ev-del" data-del-ev="${esc(e.id)}" aria-label="Удалить «${esc(e.name)}»" title="Удалить">${TRASH_SVG}</button></div>`}).join("");
   const modes=[["all","Все"],["fav","★ Избранное"],["month","Этот месяц"],["prev","Прошлый месяц"],["year","Этот год"],["range","Период"]];
   const today=localISO(new Date());
   return `<header class="brand"><div class="brand-row"><div class="logo" role="img" aria-label="Скинемся"><span class="coins"><i></i><i></i><i>₽</i></span><span class="word">скинем<em>ся</em></span></div><button type="button" class="icon-btn help-btn" id="helpBtn" aria-label="Как пользоваться">?</button><button type="button" class="icon-btn theme-btn" id="themeBtn" aria-label="Тема оформления">${THEME_ICONS[getTheme()]}</button></div><div class="tag-row"><p class="tagline">Делим общие траты без неловких разговоров</p>${S.events.length?`<button type="button" class="hist-btn" id="histBtn"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 7v5l3.2 2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>История</button>`:""}</div></header>
@@ -668,7 +707,7 @@ function eventView(e){
   }else if(t==="ppl"){
     body=`<section class="card"><h2>Участники · ${e.people.length}</h2><div class="chips">${e.people.map(p=>`<span class="chip">${ava(p.name)}${esc(p.name)}<button data-del-p="${esc(p.id)}" aria-label="Удалить">×</button></span>`).join("")||'<p class="empty">Никого нет.</p>'}</div>
       <p class="err" id="pDelMsg" hidden style="margin-top:10px"></p><form class="form" id="addP" style="margin-top:12px"><div class="two" style="grid-template-columns:1fr auto"><input id="pName" placeholder="Имя, можно несколько через запятую" required><button class="btn">+</button></div></form></section>
-      <section class="card"><h2>Мероприятие</h2><form class="form" id="editEv"><input id="evRename" maxlength="80" value="${esc(e.name)}" aria-label="Название"><label class="lbl">Описание<textarea id="evDescEdit" class="desc-input" rows="4" maxlength="2000" placeholder="Место, маршрут, что взять с собой, договорённости">${esc(e.desc||"")}</textarea></label><div class="dates"><label>с<input id="evDate" type="date" value="${esc(e.date)}"></label><label>по<input id="evDateTo" type="date" value="${esc(e.dateTo||"")}"></label></div><div class="row-actions"><button class="btn ghost small">Сохранить</button><button type="button" class="link danger" id="delEv">Удалить мероприятие</button></div><p class="empty" id="delConfirm" hidden>Нажмите ещё раз, чтобы удалить безвозвратно.</p></form></section>`;
+      <section class="card"><h2>Мероприятие</h2><form class="form" id="editEv"><input id="evRename" maxlength="80" value="${esc(e.name)}" aria-label="Название"><label class="lbl">Описание<textarea id="evDescEdit" class="desc-input" rows="4" maxlength="2000" placeholder="Место, маршрут, что взять с собой, договорённости">${esc(e.desc||"")}</textarea></label><div class="dates"><label>с<input id="evDate" type="date" value="${esc(e.date)}"></label><label>по<input id="evDateTo" type="date" value="${esc(e.dateTo||"")}"></label></div><div class="row-actions"><button class="btn ghost small">Сохранить</button><button type="button" class="link danger" id="delEv">Удалить мероприятие</button></div></form></section>`;
   }else if(t==="tr"){
     body=`<section class="card"><h2>Отметить перевод</h2>${e.people.length>1?`<form class="form" id="addTr"><div class="lbl">Кто переводит${pickerField("trFrom","Кто переводит",peopleOpts(e),e.people[0].id)}</div><div class="lbl">Кому${pickerField("trTo","Кому",peopleOpts(e),e.people[1].id)}</div><input id="trAmount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Сумма" required><p class="err" id="trErr" hidden>Выберите разных людей: кто переводит и кому.</p><button class="btn">Добавить</button></form>`:'<p class="empty">Нужно минимум два участника.</p>'}</section>
     <section class="card"><h2>Уже переведено</h2>${e.transfers.length?e.transfers.map(x=>`<div class="item">${ava(nameOf(e,x.from))}<div class="main">${esc(nameOf(e,x.from))}<small><span class="arrow">→</span> ${esc(nameOf(e,x.to))}</small></div><span class="sum">${rub(kop(x.amount))}</span><button class="link danger" data-del-tr="${esc(x.id)}" aria-label="Удалить">×</button></div>`).join(""):'<p class="empty">Переводов пока нет.</p>'}</section>`;
@@ -695,7 +734,7 @@ function eventView(e){
     ${moodCard(e)}`;
   }
   const tabs=[["exp","Расходы"],["mine","Мои"],["ppl","Люди"],["tr","Переводы"],["sum","Итог"]].map(([k,l])=>`<button role="tab" aria-selected="${t===k}" data-tab="${k}"${k==="sum"?' class="tab-sum"':k==="mine"?' class="tab-mine"':""}>${l}</button>`).join("");
-  return `<header class="top"><button class="icon-btn" id="back" aria-label="Назад">←</button><h1>${esc(e.name)}${moodOf(e)?" "+moodIcon(e.mood):""}${e.date?`<small class="per">${esc(periodRu(e))}</small>`:""}</h1><button type="button" class="icon-btn fav-btn${e.fav?" on":""}" id="favBtn" aria-pressed="${!!e.fav}" aria-label="${e.fav?"Убрать из избранного":"Добавить в избранное"}">${e.fav?'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" fill="currentColor"/></svg>':'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>'}</button></header>
+  return `<header class="top"><button class="icon-btn" id="back" aria-label="Назад">←</button><h1>${esc(e.name)}${moodOf(e)?" "+moodIcon(e.mood):""}${e.date?`<small class="per">${esc(periodRu(e))}</small>`:""}</h1><button type="button" class="icon-btn del-btn" id="delEvTop" aria-label="Удалить мероприятие" title="Удалить мероприятие">${TRASH_SVG}</button><button type="button" class="icon-btn fav-btn${e.fav?" on":""}" id="favBtn" aria-pressed="${!!e.fav}" aria-label="${e.fav?"Убрать из избранного":"Добавить в избранное"}">${e.fav?'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" fill="currentColor"/></svg>':'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>'}</button></header>
   <section class="card stats"><div>Потрачено<b>${rubShort(s.total)}</b></div><div>${(perPerson(e,s)||{label:"На 1 чел."}).label}<b>${(perPerson(e,s)||{text:"—"}).text}</b></div><div>Людей<b>${e.people.length}</b></div><div>${s.plan.length?"Переводов":"Статус"}<b>${s.plan.length?s.plan.length:"ок"}</b></div></section>
   ${e.desc?`<section class="card desc"><p class="desc-text${e.desc.length>160||e.desc.split("\n").length>3?" clamp":""}" id="descText">${esc(e.desc)}</p>${e.desc.length>160||e.desc.split("\n").length>3?'<button class="link" id="descMore">Показать полностью</button>':""}</section>`:""}
   <nav class="tabs" role="tablist">${tabs}</nav>${body}`;
@@ -1047,6 +1086,7 @@ function bind(e){
     $("newEvent").onsubmit=ev=>{ev.preventDefault();let d1=$("evFrom").value,d2=$("evTo").value;if(d1&&d2&&d2<d1)[d1,d2]=[d2,d1];if(!d1&&d2){d1=d2;d2=""}
       const ne={id:uid(),name:$("evName").value.trim(),date:d1,dateTo:d2&&d2!==d1?d2:"",plan:okAmt($("evPlan").value)?$("evPlan").value:"",planCats:{},desc:$("evDesc").value.trim(),people:splitNames($("evPeople").value).map(n=>({id:uid(),name:n})),expenses:[],transfers:[]};
       S.events.unshift(ne);save();view={event:ne.id,tab:ne.people.length?"exp":"ppl"};render()};
+    on("[data-del-ev]",ev=>{ev.stopPropagation();const x=S.events.find(y=>y.id===ev.currentTarget.dataset.delEv);if(x)askDeleteEvent(x,true)});
     on("[data-open]",ev=>{const id=ev.currentTarget.dataset.open,x=S.events.find(y=>y.id===id);view={event:id,tab:x&&isPast(x)?"sum":"exp"};render();window.scrollTo(0,0)});
     const openHelp=()=>{view.help=true;render();window.scrollTo(0,0)};$("helpBtn").onclick=openHelp;if($("firstHelp"))$("firstHelp").onclick=openHelp;
     if($("histBtn"))$("histBtn").onclick=()=>{const h=$("historyBlock");if(h)h.scrollIntoView({behavior:"smooth",block:"start"})};
@@ -1123,7 +1163,8 @@ function bind(e){
     (e.mine||[]).forEach(x=>{if(x.pushedTo&&!e.expenses.some(y=>y.id===x.pushedTo)){x.pushed=false;delete x.pushedTo}});
     if(e.me===id)e.me="";commit()});
   if($("editEv")){$("editEv").onsubmit=ev=>{ev.preventDefault();e.name=$("evRename").value.trim()||e.name;e.desc=$("evDescEdit").value.trim();let d1=$("evDate").value,d2=$("evDateTo").value;if(d1&&d2&&d2<d1)[d1,d2]=[d2,d1];if(!d1&&d2){d1=d2;d2=""}e.date=d1;e.dateTo=d2&&d2!==d1?d2:"";commit()};
-    let armed=false;$("delEv").onclick=()=>{if(!armed){armed=true;$("delConfirm").hidden=false;return}S.events=S.events.filter(x=>x.id!==e.id);view.event=null;commit()}}
+    $("delEv").onclick=()=>askDeleteEvent(e)}
+  if($("delEvTop"))$("delEvTop").onclick=()=>askDeleteEvent(e);
   if($("addTr"))$("addTr").onsubmit=ev=>{ev.preventDefault();
     if($("trFrom").value===$("trTo").value){$("trErr").hidden=false;return}
     if(!okAmt($("trAmount").value)){$("trAmount").classList.add("invalid");$("trAmount").focus();return}e.transfers.push({id:uid(),from:$("trFrom").value,to:$("trTo").value,amount:$("trAmount").value});commit()};
