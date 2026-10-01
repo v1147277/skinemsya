@@ -55,7 +55,7 @@ header.top h1{font:800 22px/1.15 var(--display);letter-spacing:-.02em;margin:0;f
 h1 .per{display:block;font:500 14px var(--sans);letter-spacing:0;color:var(--muted);margin-top:4px}
 .icon-btn{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:var(--card);color:var(--ink);font:700 22px/1 var(--sans);cursor:pointer;box-shadow:inset 0 0 0 1px var(--line)}
 
-.card{background:var(--card);border-radius:var(--r);padding:16px;box-shadow:0 1px 0 var(--line)}
+.card{scroll-margin-top:64px;background:var(--card);border-radius:var(--r);padding:16px;box-shadow:0 1px 0 var(--line)}
 h2{font:700 13px var(--sans);color:var(--muted);margin:0 0 12px;letter-spacing:.01em}
 
 input,select,textarea{font:inherit;font-size:16px;color:var(--ink);-webkit-text-fill-color:var(--ink);caret-color:var(--accent);background-color:var(--field);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;width:100%;min-width:0;-webkit-appearance:none;appearance:none;opacity:1}
@@ -203,6 +203,9 @@ input[type=number]{-moz-appearance:textfield}
 .tag{white-space:nowrap;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--field);box-shadow:inset 0 0 0 1px var(--line);color:var(--muted)}
 .hint.ok{color:var(--get);font-weight:700;margin-top:10px}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
+.pick-sum{display:flex;align-items:baseline;gap:10px;margin-top:10px;font-size:14px;font-weight:600}
+.pick-sum span{flex:1;min-width:0;overflow-wrap:anywhere}
+.pick-sum .link{flex:none}
 .tr-row{padding:10px 0;border-bottom:1px solid var(--line)}.tr-row:last-of-type{border-bottom:0}
 .tr-row .item{padding:0;border:0}
 .tr-acts{margin-top:8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:6px}
@@ -502,6 +505,27 @@ function lastPayFor(name){const n=String(name).trim().toLowerCase();
   for(const ev of evs){if(ev.imported)continue;const p=ev.people.find(x=>x.name.trim().toLowerCase()===n&&x.pay);if(p)return p.pay}return ""}
 function newPerson(name,tpl){const o={id:uid(),name};const t=tpl&&tpl.people.find(x=>x.name.trim().toLowerCase()===name.trim().toLowerCase());
   if(t&&wOf(t)!==1)o.w=t.w;const pay=(t&&t.pay)||lastPayFor(name);if(pay)o.pay=pay;return o}
+// выбор конкретных мероприятий для фильтра «Показать»
+function openPickSheet(setF){
+  closeSheet();const sel=new Set((S.filter&&S.filter.ids)||[]);
+  const list=S.events.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  const wrap=document.createElement("div");wrap.className="sheet-wrap";wrap.id="sheet";
+  wrap.innerHTML=`<div class="sheet-bg" data-close></div><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pkTitle"><div class="grab" aria-hidden="true"></div>
+    <h3 id="pkTitle">Какие мероприятия показать</h3>
+    ${list.length>6?'<input id="pkSearch" type="search" placeholder="Поиск по названию" style="margin-bottom:8px" autocomplete="off">':""}
+    <div class="sheet-list" id="pkList">${list.map(e=>`<button type="button" class="sheet-row${sel.has(e.id)?" on":""}" data-id="${esc(e.id)}" aria-pressed="${sel.has(e.id)}"><span class="pk-main"><span class="pk-label">${e.fav?'<span class="star">★</span> ':""}${esc(e.name)}</span><span class="pk-sub">${esc([e.date?periodRu(e):"",rubShort(settle(e).total)].filter(Boolean).join(" · "))}</span></span><span class="sh-check" aria-hidden="true"></span></button>`).join("")}
+      <p class="empty" id="pkNone" hidden>Ничего не найдено.</p></div>
+    <div class="del-actions"><button type="button" class="btn" id="pkShow"></button><button type="button" class="btn ghost" id="pkClear">Снять все отметки</button></div></div>`;
+  document.body.appendChild(wrap);sheetOpened();requestAnimationFrame(()=>wrap.classList.add("open"));
+  const btn=wrap.querySelector("#pkShow"),upd=()=>{btn.textContent=sel.size?`Показать (${sel.size})`:"Показать все"};upd();
+  wrap.addEventListener("click",ev=>{const r=ev.target.closest(".sheet-row");
+    if(r){const id=r.dataset.id;if(sel.has(id))sel.delete(id);else sel.add(id);r.classList.toggle("on",sel.has(id));r.setAttribute("aria-pressed",sel.has(id));upd();return}
+    if(ev.target.closest("[data-close]"))closeSheet()});
+  wrap.querySelector("#pkClear").onclick=()=>{sel.clear();wrap.querySelectorAll(".sheet-row.on").forEach(r=>{r.classList.remove("on");r.setAttribute("aria-pressed","false")});upd()};
+  btn.onclick=()=>{closeSheet();setF(sel.size?{mode:"pick",ids:[...sel]}:{mode:"all",ids:[]})};
+  const q=wrap.querySelector("#pkSearch");if(q)q.oninput=()=>{const t=q.value.trim().toLowerCase();let n=0;
+    wrap.querySelectorAll(".sheet-row").forEach(r=>{const hit=!t||r.querySelector(".pk-label").textContent.toLowerCase().includes(t);r.hidden=!hit;if(hit)n++});wrap.querySelector("#pkNone").hidden=n>0};
+}
 // карточка участника: имя, доля, реквизиты
 function openPersonSheet(e,p){
   closeSheet();const w0=wOf(p);
@@ -735,7 +759,8 @@ function helpView(){
     ${ex("Мероприятие <b>«Алтай, август»</b> само сравнится с <b>«Алтай, июль»</b>: в названиях есть общее слово. Если хотите сравнить с баней, выберите её в поле «Сравнить с».")}`)}
 
   ${sec("h-home","Главный экран, история и тема",`
-    <p><b>История</b> (кнопка вверху) прокручивает к списку мероприятий. Фильтр «Показать»: все, избранное, этот месяц, прошлый, этот год или свой период.</p>
+    <p><b>История</b> (кнопка вверху) прокручивает к списку мероприятий. Фильтр «Показать»: все, избранное, этот месяц, прошлый, этот год, свой период или <b>«Выбрать»</b>: отметьте нужные мероприятия в списке, есть поиск по названию.</p>
+    ${ex("Сколько ушло на все поездки на Алтай? «Выбрать» → в поиске «алтай» → отметьте «Алтай, июль» и «Алтай, август» → «Показать (2)». Под фильтром будет общая сумма, а в «Статистике» категории и люди только по ним.")}
     ${ex("Сколько потратили на поездки за лето? Выберите «Период», с <b>01.06</b> по <b>31.08</b>. Под фильтром будет «Найдено 4 из 12 · потрачено …».")}
     <p><b>Статистика</b> под фильтром: на что ушли деньги и кто сколько заплатил за выбранные мероприятия. Там же таблица этих расходов для Excel.</p>
     <p><b>По образцу.</b> В «Новой тусовке» нажмите «+ Участники из прошлого мероприятия». Подставятся люди, их доли и реквизиты. То же делает кнопка «Новое мероприятие с этими участниками» на вкладке «Люди».</p>
@@ -776,7 +801,7 @@ function homeView(){
   const sumAll=shown.reduce((t,e)=>t+settle(e).total,0);
   const list=shown.map(e=>{const s=settle(e);const left=s.plan.length;const per=periodRu(e);
     return `<div class="ev-wrap"><button class="event" data-open="${esc(e.id)}"><span class="main"><b>${e.fav?'<span class="fav-mark" aria-label="Избранное">★</span> ':""}${esc(e.name)}${moodOf(e)?" "+moodIcon(e.mood):""}</b><small>${per?esc(per)+" · ":""}${rubShort(s.total)}</small>${e.desc?`<small class="desc-line">${esc(e.desc.split("\n")[0])}</small>`:""}${e.people.length?`<span class="stack">${e.people.slice(0,5).map(p=>ava(p.name)).join("")}${e.people.length>5?`<span class="ava more">+${e.people.length-5}</span>`:""}</span>`:""}</span>${left?`<span class="pill warn">${left} перев.</span>`:`<span class="pill">в расчёте</span>`}</button><button type="button" class="ev-del" data-del-ev="${esc(e.id)}" aria-label="Удалить «${esc(e.name)}»" title="Удалить">${TRASH_SVG}</button></div>`}).join("");
-  const modes=[["all","Все"],["fav","★ Избранное"],["month","Этот месяц"],["prev","Прошлый месяц"],["year","Этот год"],["range","Период"]];
+  const modes=[["all","Все"],["fav","★ Избранное"],["month","Этот месяц"],["prev","Прошлый месяц"],["year","Этот год"],["range","Период"],["pick","Выбрать"]];
   const today=localISO(new Date());const tplE=S.events.find(x=>x.id===view.tpl)||null;
   return `<header class="brand"><div class="brand-row"><div class="logo" role="img" aria-label="Скинемся"><span class="coins"><i></i><i></i><i>₽</i></span><span class="word">скинем<em>ся</em></span></div><button type="button" class="icon-btn help-btn" id="helpBtn" aria-label="Как пользоваться">?</button><button type="button" class="icon-btn theme-btn" id="themeBtn" aria-label="Тема оформления">${THEME_ICONS[getTheme()]}</button></div><div class="tag-row"><p class="tagline">Делим общие траты без неловких разговоров</p>${S.events.length?`<button type="button" class="hist-btn" id="histBtn"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 7v5l3.2 2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>История</button>`:""}</div></header>
   ${backupNag()}
@@ -792,7 +817,8 @@ function homeView(){
   ${S.events.length?`<section class="card" id="historyBlock"><h2>Показать</h2>
     <div class="chips">${modes.map(([k,l])=>`<label class="pick"><input type="radio" name="fmode" value="${k}"${f.mode===k?" checked":""}><span>${l}</span></label>`).join("")}</div>
     ${f.mode==="range"?`<div class="dates" style="margin-top:10px"><label>с<input id="fFrom" type="date" value="${esc(f.from)}"></label><label>по<input id="fTo" type="date" value="${esc(f.to)}"></label></div>`:""}
-    <p class="hint" style="margin-top:10px">${f.mode==="fav"?(shown.length?`В избранном: ${shown.length} · потрачено ${rubShort(sumAll)}`:"В избранном пока пусто. Откройте мероприятие и нажмите звёздочку вверху."):f.mode==="all"?`Всего мероприятий: ${S.events.length}`:`Найдено ${shown.length} из ${S.events.length} · потрачено ${rubShort(sumAll)}`}</p></section>`:""}
+    ${f.mode==="pick"?`<div class="pick-sum"><span>${shown.length?shown.map(e=>"«"+esc(e.name)+"»").join(", "):"Мероприятия не выбраны"}</span><button type="button" class="link acc" id="pickEdit">${shown.length?"Изменить":"Выбрать"}</button></div>`:""}
+    <p class="hint" style="margin-top:10px">${f.mode==="pick"?(shown.length?`Выбрано: ${shown.length} · потрачено ${rubShort(sumAll)}`:"Нажмите «Выбрать» и отметьте нужные мероприятия."):f.mode==="fav"?(shown.length?`В избранном: ${shown.length} · потрачено ${rubShort(sumAll)}`:"В избранном пока пусто. Откройте мероприятие и нажмите звёздочку вверху."):f.mode==="all"?`Всего мероприятий: ${S.events.length}`:`Найдено ${shown.length} из ${S.events.length} · потрачено ${rubShort(sumAll)}`}</p></section>`:""}
   ${statsCard(shown)}
   ${list||(S.events.length?'<p class="empty">За этот период мероприятий нет.</p>':'<p class="empty">Пока пусто. Создайте первое мероприятие: поездку, встречу или совместную закупку.</p><button type="button" class="first-help" id="firstHelp">Впервые здесь? <b>Как пользоваться за 1 минуту →</b></button>')}
   <section class="card"><h2>Резервная копия</h2>
@@ -814,7 +840,8 @@ function eventView(e){
   let body="";
   if(t==="exp"){
     const ed=e.expenses.find(x=>x.id===view.edit);const inSplit=ed?amongOf(e,ed):e.people.map(p=>p.id);
-    body=`<section class="card" id="expCard"><h2>${ed?"Изменить расход":"Добавить расход"}</h2>${e.people.length?`<form class="form" id="addExp">
+    body=`<section class="card" id="expList"><h2>Расходы${e.expenses.length?` · ${e.expenses.length}`:""}</h2>${e.expenses.length?e.expenses.map(x=>`<div class="item${x.id===view.edit?" editing":""}"><button class="main edit" data-edit-exp="${esc(x.id)}">${esc(payersLabel(e,x))}<small>${x.fromMine?'<span class="tag">из моих</span> ':""}${catsOf(x).length?`<span class="cat">${esc(catsLabel(x))}</span>${isManual(x)?' <span class="tag">суммы вручную</span>':""} · `:""}${x.note?esc(x.note)+" · ":""}${esc(amongLabel(e,x))}</small></button><span class="sum">${rub(kop(x.amount))}</span><button class="link danger" data-del-exp="${esc(x.id)}" aria-label="Удалить">×</button></div>`).join(""):`<p class="empty">Расходов пока нет.</p>${e.people.length?'<button type="button" class="first-help" id="toAddExp">Добавьте первый расход: кто платил и сколько <b>↓</b></button>':'<button type="button" class="first-help" id="toPeople">Сначала добавьте участников <b>→</b></button>'}`}${e.expenses.length?'<p class="empty">Нажмите на расход, чтобы изменить его.</p>':""}</section>
+    <section class="card" id="expCard"><h2>${ed?"Изменить расход":"Добавить расход"}</h2>${e.people.length?`<form class="form" id="addExp">
       <div class="two" id="singlePay">${pickerField("expPayer","Кто платил",peopleOpts(e),ed?ed.payer:e.people[0].id)}<input id="expAmount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Сумма" required value="${ed?esc(ed.amount):""}"></div>
       ${e.people.length>1?`<button type="button" class="link acc" id="multiToggle">${ed&&payersOf(e,ed).length>1?"Платил один человек":"Платили несколько человек"}</button>
       <div class="catsplit" id="multiPay" hidden><p class="hint">Сколько заплатил каждый. Пустые строки не учитываются.</p>
@@ -828,7 +855,6 @@ function eventView(e){
       <div class="chips">${e.people.map(p=>`<label class="pick"><input type="checkbox" name="among" value="${esc(p.id)}"${inSplit.includes(p.id)?" checked":""}><span>${esc(p.name)}</span></label>`).join("")}</div>
       <p class="err" id="splitErr" hidden>Отметьте хотя бы одного человека.</p>
       <div class="row-actions"><button class="btn">${ed?"Сохранить":"Добавить"}</button>${ed?'<button type="button" class="btn ghost" id="cancelEdit">Отмена</button>':""}</div></form>`:'<p class="empty">Сначала добавьте участников.</p>'}</section>
-    <section class="card"><h2>Расходы</h2>${e.expenses.length?e.expenses.map(x=>`<div class="item${x.id===view.edit?" editing":""}"><button class="main edit" data-edit-exp="${esc(x.id)}">${esc(payersLabel(e,x))}<small>${x.fromMine?'<span class="tag">из моих</span> ':""}${catsOf(x).length?`<span class="cat">${esc(catsLabel(x))}</span>${isManual(x)?' <span class="tag">суммы вручную</span>':""} · `:""}${x.note?esc(x.note)+" · ":""}${esc(amongLabel(e,x))}</small></button><span class="sum">${rub(kop(x.amount))}</span><button class="link danger" data-del-exp="${esc(x.id)}" aria-label="Удалить">×</button></div>`).join(""):'<p class="empty">Расходов пока нет.</p>'}${e.expenses.length?'<p class="empty">Нажмите на расход, чтобы изменить его.</p>':""}</section>
     ${e.expenses.length?'<button type="button" class="btn to-sum" id="toSum">Итог →</button>':""}`;
   }else if(t==="mine"){
     body=mineView(e);
@@ -898,6 +924,7 @@ function filterRange(f){
 }
 function filterEvents(list,f){
   if(f.mode==="fav")return list.filter(e=>e.fav);
+  if(f.mode==="pick"){const ids=new Set(f.ids||[]);return list.filter(e=>ids.has(e.id))}
   const r=filterRange(f);if(!r)return list.slice();
   const [from,to]=r;
   return list.filter(e=>{if(!e.date)return false;const s=e.date,t=e.dateTo&&e.dateTo>e.date?e.dateTo:e.date;
@@ -1318,7 +1345,8 @@ function bind(e){
     if($("nagLater"))$("nagLater").onclick=()=>{S.backupSnooze=Date.now()+3*864e5;save(true);render()};
     if($("statsBlock"))$("statsBlock").addEventListener("toggle",()=>{view.statsOpen=$("statsBlock").open});
     if($("allCsv"))$("allCsv").onclick=()=>{const list=filterEvents(S.events,S.filter||{mode:"all"});saveFile(`skinemsya-vse-${localISO(new Date())}.csv`,"\ufeff"+allCSV(list),"text/csv","Скинемся: расходы").then(t=>t&&toast(t))};
-    document.querySelectorAll('input[name=fmode]').forEach(r=>r.onchange=()=>setF({mode:r.value}));
+    document.querySelectorAll('input[name=fmode]').forEach(r=>r.onchange=()=>{setF({mode:r.value});if(r.value==="pick"&&!filterEvents(S.events,S.filter).length)openPickSheet(setF)});
+    if($("pickEdit"))$("pickEdit").onclick=()=>openPickSheet(setF);
     if($("fFrom")){$("fFrom").onchange=()=>setF({from:$("fFrom").value});$("fTo").onchange=()=>setF({to:$("fTo").value})}
     $("themeBtn").onclick=()=>openSheet("Тема оформления",[
       {value:"auto",label:"Как в телефоне",sub:"Меняется вместе с настройкой системы",icon:THEME_ICONS.auto},
@@ -1394,6 +1422,8 @@ function bind(e){
       if(ed)Object.assign(ed,data);else e.expenses.push({id:uid(),...data});
       view.edit=null;commit()};
   }
+  if($("toAddExp"))$("toAddExp").onclick=()=>{const c=$("expCard");if(c)c.scrollIntoView({behavior:"smooth",block:"start"});const i=$("expAmount");if(i)setTimeout(()=>i.focus({preventScroll:true}),350)};
+  if($("toPeople"))$("toPeople").onclick=()=>{view.tab="ppl";render();const i=$("pName");if(i)i.focus()};
   on("[data-edit-exp]",ev=>{view.edit=ev.currentTarget.dataset.editExp;render();document.getElementById("expCard").scrollIntoView({behavior:"smooth",block:"start"})});
   // удаление строки, созданной из «Моих», возвращает её записи в журнал
   on("[data-del-exp]",ev=>{const id=ev.currentTarget.dataset.delExp;e.expenses=e.expenses.filter(x=>x.id!==id);
@@ -1509,7 +1539,7 @@ function sanitizeState(st){
       mood:moodKeys.has(e.mood)?e.mood:"",fav:!!e.fav,imported:!!e.imported,round:e.round===10||e.round===100?e.round:0,compareWith:okId(e.compareWith)||e.compareWith==="none"?e.compareWith:""});
   });
   const f=st&&st.filter&&typeof st.filter==="object"?st.filter:{};
-  return {events,filter:{mode:["all","fav","month","prev","year","range"].includes(f.mode)?f.mode:"all",from:date(f.from),to:date(f.to)},
+  return {events,filter:{mode:["all","fav","month","prev","year","range","pick"].includes(f.mode)?f.mode:"all",from:date(f.from),to:date(f.to),ids:Array.isArray(f.ids)?f.ids.filter(okId).slice(0,500):[]},
     lastBackup:typeof(st&&st.lastBackup)==="string"?st.lastBackup.slice(0,40):undefined,
     lastChange:Number(st&&st.lastChange)||0,backupSnooze:Number(st&&st.backupSnooze)||0};
 }
