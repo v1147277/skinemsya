@@ -203,6 +203,36 @@ input[type=number]{-moz-appearance:textfield}
 .tag{white-space:nowrap;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--field);box-shadow:inset 0 0 0 1px var(--line);color:var(--muted)}
 .hint.ok{color:var(--get);font-weight:700;margin-top:10px}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
+.tr-row{padding:10px 0;border-bottom:1px solid var(--line)}.tr-row:last-of-type{border-bottom:0}
+.tr-row .item{padding:0;border:0}
+.tr-acts{margin-top:8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:6px}
+.tr-acts .btn.small{padding:8px 6px;font-size:13px;width:100%}
+.pay-line{color:var(--get);font-weight:600;overflow-wrap:anywhere}
+.round-chips{margin:0 0 6px}
+.nag{background:var(--owe-soft);box-shadow:none;display:grid;gap:6px}
+.nag b{color:var(--owe);font-weight:800}
+.nag .hint{color:var(--ink);opacity:.8}
+.stats-card summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;font:800 16px/1.3 var(--display);letter-spacing:-.01em}
+.stats-card summary::-webkit-details-marker{display:none}
+.stats-card summary span{flex:1}
+.stats-card[open] summary .cat-chev{transform:rotate(45deg)}
+.stats-card summary .cat-chev{margin:0}
+.st-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.st-row:last-of-type{border-bottom:0}
+.st-row .main{flex:1;min-width:0}
+.st-row .main b{display:block;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-row .main small{color:var(--muted);font-size:12px}
+.st-row .sum{text-align:right}.st-row .sum small{display:block;color:var(--muted);font-weight:600;font-size:12px}
+.st-bars{display:grid;gap:3px;margin-top:5px}
+.st-bars i{display:block;height:5px;border-radius:3px;min-width:2px}
+.st-bars .pd{background:var(--accent)}.st-bars .pt{background:var(--sun)}
+.two.multi-on{grid-template-columns:1fr}.two.multi-on .picker{display:none}
+input[readonly]{opacity:.75}
+.chip-main{display:inline-flex;align-items:center;gap:8px;border:0;background:none;color:inherit;font:inherit;padding:0;text-align:left}
+.pay-tag{color:var(--get);background:var(--get-soft);box-shadow:none}
+.tpl-link{color:var(--accent);padding:2px 0;justify-self:start;text-align:left}
+.party .tpl-link{color:#ffe27a}
+.tpl-note .tpl-link{display:inline;padding:0 0 0 4px}
 .more-cats{display:contents}
 .more-btn{border:0;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:700;background:transparent;color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--soft)}
 .brand-row{display:flex;align-items:center;gap:8px}
@@ -393,7 +423,7 @@ function toast(t,act,fn,ms){let el=document.getElementById("toast");if(!el){el=d
   if(act){const sp=document.createElement("span");sp.className="t-txt";sp.textContent=t;const b=document.createElement("button");b.type="button";b.className="t-act";b.textContent=act;
     b.onclick=()=>{clearTimeout(el._t);el.classList.remove("show","has-act");fn()};el.append(sp,b)}else el.textContent=t;
   el.classList.add("show");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("show","has-act"),ms||6000)}
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast("Не удалось сохранить изменения: браузер не даёт записать данные. Сохраните копию на главном экране.")}};
+const save=(quiet)=>{if(!quiet)S.lastChange=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast("Не удалось сохранить изменения: браузер не даёт записать данные. Сохраните копию на главном экране.")}};
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const num=k=>{const neg=k<0,a=Math.abs(k),r=Math.floor(a/100),c=a%100;const rs=String(r).replace(/\B(?=(\d{3})+(?!\d))/g,"\u00a0");return (neg?"-":"")+rs+","+String(c).padStart(2,"0")};
 const rub=k=>num(k)+"\u00a0₽";
@@ -416,7 +446,8 @@ function catSplit(x){const a=kop(x.amount),ks=catsOf(x);if(!ks.length)return {""
   const base=Math.floor(a/ks.length),rem=a-base*ks.length,o={};ks.forEach((k,i)=>o[k]=base+(i<rem?1:0));return o}
 const isManual=x=>{const ks=catsOf(x);if(ks.length<2||!x.catAmounts)return false;return ks.every(k=>x.catAmounts[k]!=null)&&ks.reduce((t,k)=>t+kop(x.catAmounts[k]),0)===kop(x.amount)};
 // кто сколько заплатил в категории (с учётом деления расхода между категориями)
-function catPayers(e,k){const m={};e.expenses.forEach(x=>{const v=catSplit(x)[k];if(v)m[x.payer]=(m[x.payer]||0)+v});
+function catPayers(e,k){const m={};e.expenses.forEach(x=>{const v=catSplit(x)[k];if(!v)return;const ps=payersOf(e,x),a=kop(x.amount)||1;let used=0;
+  ps.forEach((p,i)=>{const part=i===ps.length-1?v-used:Math.round(v*p.a/a);used+=part;m[p.id]=(m[p.id]||0)+part})});
   return Object.entries(m).map(([id,a])=>({id,a,name:nameOf(e,id)})).sort((a,b)=>b.a-a.a)}
 function catTotals(e){const m={};e.expenses.forEach(x=>{Object.entries(catSplit(x)).forEach(([k,v])=>m[k]=(m[k]||0)+v)});
   const rows=CATS.filter(c=>m[c[0]]).map(c=>({k:c[0],n:c[1],a:m[c[0]]}));if(m[""])rows.push({k:"",n:"Без категории",a:m[""]});
@@ -459,11 +490,36 @@ function openSheet(title,options,sel,onPick){
   wrap.innerHTML=`<div class="sheet-bg" data-close></div><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="grab" aria-hidden="true"></div><h3>${esc(title)}</h3>
     <div class="sheet-list">${options.map((o,i)=>`<button type="button" class="sheet-row${o.value===sel?" on":""}" data-i="${i}">${o.icon?`<span class="sh-ico">${o.icon}</span>`:o.ava?ava(o.label):""}<span class="pk-main"><span class="pk-label">${esc(o.label)}${o.star?' <span class="star">★</span>':""}</span>${o.sub?`<span class="pk-sub">${esc(o.sub)}</span>`:""}</span><span class="sh-check" aria-hidden="true"></span></button>`).join("")}</div>
     <button type="button" class="btn ghost sheet-close" data-close>Закрыть</button></div>`;
-  document.body.appendChild(wrap);
+  document.body.appendChild(wrap);sheetOpened();
   requestAnimationFrame(()=>wrap.classList.add("open"));
   wrap.addEventListener("click",ev=>{const r=ev.target.closest(".sheet-row");if(r){const o=options[+r.dataset.i];closeSheet();onPick(o.value);return}
     if(ev.target.closest("[data-close]"))closeSheet()});
   const on=wrap.querySelector(".sheet-row.on")||wrap.querySelector(".sheet-row");if(on)on.focus({preventScroll:true});
+}
+// новый участник: доля и реквизиты берутся из образца, реквизиты — ещё и из прошлых мероприятий с тем же именем
+function lastPayFor(name){const n=String(name).trim().toLowerCase();
+  const evs=S.events.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  for(const ev of evs){const p=ev.people.find(x=>x.name.trim().toLowerCase()===n&&x.pay);if(p)return p.pay}return ""}
+function newPerson(name,tpl){const o={id:uid(),name};const t=tpl&&tpl.people.find(x=>x.name.trim().toLowerCase()===name.trim().toLowerCase());
+  if(t&&wOf(t)!==1)o.w=t.w;const pay=(t&&t.pay)||lastPayFor(name);if(pay)o.pay=pay;return o}
+// карточка участника: имя, доля, реквизиты
+function openPersonSheet(e,p){
+  closeSheet();const w0=wOf(p);
+  const wrap=document.createElement("div");wrap.className="sheet-wrap";wrap.id="sheet";
+  wrap.innerHTML=`<div class="sheet-bg" data-close></div><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="psTitle"><div class="grab" aria-hidden="true"></div>
+    <h3 id="psTitle">Участник</h3><div class="sheet-list form" style="padding:0 2px 10px">
+    <label class="lbl">Имя<input id="psName" maxlength="60" value="${esc(p.name)}"></label>
+    <div class="lbl">Доля в общих расходах<div class="chips">${W_OPTS.map(w=>`<label class="pick"><input type="radio" name="psW" value="${w}"${w===w0?" checked":""}><span>${w===1?"1 (обычно)":"×"+wLabel(w)}</span></label>`).join("")}</div></div>
+    <div class="ex"><span class="ex-tag">Пример</span>Вася с женой — доля <b>2</b>, ребёнок — <b>0,5</b>. Ужин на 5&nbsp;000&nbsp;₽ на Васю (2) и Колю (1): Вася должен 3&nbsp;333,33&nbsp;₽, Коля 1&nbsp;666,67&nbsp;₽.</div>
+    <label class="lbl">Реквизиты для перевода<input id="psPay" maxlength="80" placeholder="+7 900 123-45-67, Т-Банк" value="${esc(p.pay||"")}"></label>
+    <p class="hint">Телефон для СБП или номер карты и банк. Видны в «Итоге» и в тексте для чата. Подставятся сами, если этот человек будет в следующем мероприятии.</p>
+    </div><div class="del-actions"><button type="button" class="btn" id="psSave">Сохранить</button><button type="button" class="btn ghost" data-close>Закрыть</button></div></div>`;
+  document.body.appendChild(wrap);sheetOpened();requestAnimationFrame(()=>wrap.classList.add("open"));
+  wrap.addEventListener("click",ev=>{if(ev.target.closest("[data-close]"))closeSheet()});
+  wrap.querySelector("#psSave").onclick=()=>{const n=wrap.querySelector("#psName").value.trim().slice(0,60);if(n)p.name=n;
+    const w=Number((wrap.querySelector("input[name=psW]:checked")||{}).value)||1;if(w!==1)p.w=w;else delete p.w;
+    const pay=wrap.querySelector("#psPay").value.trim().slice(0,80);if(pay)p.pay=pay;else delete p.pay;
+    closeSheet();save();render()};
 }
 // удаление мероприятия: кнопка-корзина → окно подтверждения → удаление; ещё 10 секунд можно вернуть
 const TRASH_SVG='<svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12.2A2 2 0 0 0 9 21h6a2 2 0 0 0 2-1.8L18 7M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -475,16 +531,30 @@ function askDeleteEvent(e,fromList){
     <div class="del-info"><b>${esc(e.name)}</b><small>${per?esc(per)+" · ":""}потрачено ${rubShort(s.total)} · ${e.people.length} чел. · расходов: ${n}</small></div>
     <p class="del-warn" id="delWarn">Удалятся все расходы, переводы, «Мои» записи и отзывы. Ещё 10 секунд после удаления его можно вернуть, потом только из резервной копии.</p>
     <div class="del-actions"><button type="button" class="btn danger" id="delYes">Удалить навсегда</button><button type="button" class="btn ghost" data-close id="delNo">Отмена</button></div></div>`;
-  document.body.appendChild(wrap);requestAnimationFrame(()=>wrap.classList.add("open"));
+  document.body.appendChild(wrap);sheetOpened();requestAnimationFrame(()=>wrap.classList.add("open"));
   wrap.addEventListener("click",ev=>{if(ev.target.closest("[data-close]"))closeSheet()});
   wrap.querySelector("#delYes").onclick=()=>{closeSheet();deleteEvent(e.id,fromList)};
   wrap.querySelector("#delNo").focus({preventScroll:true});
 }
 function deleteEvent(id,fromList){const y=fromList?window.scrollY:0;const i=S.events.findIndex(x=>x.id===id);if(i<0)return;const [gone]=S.events.splice(i,1);
-  view={event:null,tab:"exp"};save();render();window.scrollTo(0,y);
+  save();view={event:null,tab:"exp"};render();window.scrollTo(0,y);
   toast(`«${gone.name}» удалено`,"Вернуть",()=>{if(!S.events.some(x=>x.id===gone.id)){S.events.splice(Math.min(i,S.events.length),0,gone);save()}
-    if(fromList){view={event:null,tab:"exp"};render();window.scrollTo(0,y)}else{view={event:gone.id,tab:isPast(gone)?"sum":"exp"};render();window.scrollTo(0,0)}},10000)}
-function closeSheet(){const w=document.getElementById("sheet");if(w)w.remove()}
+    if(fromList){view={event:null,tab:"exp"};render();window.scrollTo(0,y)}else goEvent(gone.id,isPast(gone)?"sum":"exp")},10000)}
+function closeSheet(){const w=document.getElementById("sheet");if(!w)return;w.remove();
+  // окно закрыто кнопкой: его запись в истории больше не нужна
+  try{if(history.state&&history.state.sk==="sheet")history.replaceState({sk:"x"},"")}catch(err){}}
+// ---------- навигация: системная кнопка «Назад» (Android) возвращает на предыдущий экран
+function pushNav(kind){try{history.pushState({sk:kind||"in"},"")}catch(err){}}
+function sheetOpened(){pushNav("sheet")}
+const inside=()=>!!(view.event||view.help);
+function goEvent(id,tab){const was=inside();view={event:id,tab:tab||"exp"};if(!was)pushNav();render();window.scrollTo(0,0)}
+function goHelp(){view={event:null,tab:"exp",help:true};pushNav();render();window.scrollTo(0,0)}
+let afterHome=null;
+function goHome(after){afterHome=after||null;if(history.state&&history.state.sk){history.back();return}view={event:null,tab:"exp"};render();runAfterHome()}
+function runAfterHome(){const f=afterHome;afterHome=null;if(f)f()}
+window.addEventListener("popstate",()=>{
+  const w=document.getElementById("sheet");if(w){w.remove();return}
+  if(inside()){view={event:null,tab:"exp"};render();runAfterHome()}});
 document.addEventListener("keydown",ev=>{if(ev.key==="Escape")closeSheet()});
 document.addEventListener("click",ev=>{const b=ev.target.closest("[data-picker]");if(!b)return;const id=b.dataset.picker,cfg=PICKERS[id],inp=document.getElementById(id);if(!cfg||!inp)return;
   openSheet(cfg.title,cfg.options,inp.value,v=>{inp.value=v;const cur=cfg.options.find(o=>o.value===v);
@@ -517,11 +587,27 @@ function moodCard(e){const m=moodOf(e);
 function amongOf(e,x){const ids=e.people.map(p=>p.id);if(!Array.isArray(x.among))return ids;const f=x.among.filter(id=>ids.includes(id));return f.length?f:ids}
 function amongLabel(e,x){const a=amongOf(e,x);if(a.length===e.people.length)return "на всех";
   const names=a.map(id=>nameOf(e,id));return `на ${a.length} из ${e.people.length}: `+(names.length>3?names.slice(0,3).join(", ")+"…":names.join(", "))}
+// доли участников: пара = 2, ребёнок = 0,5
+const W_OPTS=[0.5,1,1.5,2,3,4,5];
+const wOf=p=>p&&p.w>0?p.w:1;
+const wLabel=w=>String(w).replace(".",",");
+const hasWeights=e=>e.people.some(p=>wOf(p)!==1);
+// кто платил за расход: [{id,a}] в копейках; несколько плательщиков, только если их суммы сходятся с общей
+function payersOf(e,x){const a=kop(x.amount);
+  if(Array.isArray(x.payers)&&x.payers.length>1){const ids=new Set(e.people.map(p=>p.id));
+    const v=x.payers.filter(p=>p&&ids.has(p.id)).map(p=>({id:p.id,a:kop(p.amount)})).filter(p=>p.a>0);
+    if(v.length>1&&v.reduce((t,p)=>t+p.a,0)===a)return v}
+  return [{id:x.payer,a}]}
+const payersLabel=(e,x)=>payersOf(e,x).map(p=>nameOf(e,p.id)).join(" + ");
+// округление переводов: 0, 10 или 100 ₽ (в копейках); допуск «рассчитался» — половина шага
+const roundStep=e=>e&&(e.round===10||e.round===100)?e.round*100:0;
+const tolOf=e=>roundStep(e)?roundStep(e)/2:1;
 function settle(e){
   const n=e.people.length,idx={};e.people.forEach((p,i)=>idx[p.id]=i);
   const bal=new Array(n).fill(0),paid=new Array(n).fill(0),owed=new Array(n).fill(0);let total=0;
   e.expenses.forEach(x=>{const a=kop(x.amount);const who=amongOf(e,x).map(id=>idx[id]),m=who.length;if(!m)return;
-    total+=a;if(idx[x.payer]!==undefined)paid[idx[x.payer]]+=a;who.forEach(j=>owed[j]+=a/m)});
+    total+=a;payersOf(e,x).forEach(p=>{if(idx[p.id]!==undefined)paid[idx[p.id]]+=p.a});
+    const ws=who.map(j=>wOf(e.people[j])),W=ws.reduce((t,v)=>t+v,0);who.forEach((j,k)=>owed[j]+=a*ws[k]/W)});
   // доли округляем до копеек один раз, остаток копеек отдаём самым большим дробным частям
   const fl=owed.map(v=>Math.floor(v+1e-9));let rem=total-fl.reduce((x,y)=>x+y,0);
   owed.map((v,i)=>({i,f:v-fl[i]})).sort((x,y)=>y.f-x.f||x.i-y.i).forEach(o=>{if(rem>0){fl[o.i]++;rem--}});
@@ -529,8 +615,9 @@ function settle(e){
   e.transfers.forEach(t=>{const a=kop(t.amount);if(idx[t.from]!==undefined&&idx[t.to]!==undefined){bal[idx[t.from]]+=a;bal[idx[t.to]]-=a}});
   const cr=[],db=[];bal.forEach((b,i)=>{if(b>0)cr.push({i,a:b});else if(b<0)db.push({i,a:-b})});
   cr.sort((a,b)=>b.a-a.a);db.sort((a,b)=>b.a-a.a);
-  const plan=[];let c=0,d=0;
+  let plan=[];let c=0,d=0;
   while(c<cr.length&&d<db.length){const x=Math.min(cr[c].a,db[d].a);plan.push({from:e.people[db[d].i].id,to:e.people[cr[c].i].id,a:x});cr[c].a-=x;db[d].a-=x;if(!cr[c].a)c++;if(!db[d].a)d++}
+  const st=roundStep(e);if(st)plan=plan.map(p=>({from:p.from,to:p.to,a:Math.round(p.a/st)*st})).filter(p=>p.a>0);
   return {total,share:n?total/n:0,bal,plan,paid,owed:fl};
 }
 
@@ -599,6 +686,8 @@ function helpView(){
     ${ex("Нужно точнее: нажмите «Указать суммы вручную» и впишите продукты <b>2&nbsp;200&nbsp;₽</b>. Алкоголь посчитается сам: 3&nbsp;000 − 2&nbsp;200 = <b>800&nbsp;₽</b>.")}
     <p><b>На кого делим.</b> Если расход не общий, снимите отметки с тех, кто не участвовал. Кнопка «Все» отмечает всех сразу, «Никого» снимает все отметки.</p>
     ${ex("Шашлык за <b>1&nbsp;200&nbsp;₽</b> ели только Петя и Коля. Оставьте отмеченными их двоих. Тогда каждый из них должен по 600&nbsp;₽, а Васи этот расход не касается.")}
+    <p><b>Платили несколько человек.</b> Нажмите «Платили несколько человек» под суммой и впишите, кто сколько заплатил. Общая сумма посчитается сама.</p>
+    ${ex("Баню за <b>6&nbsp;000&nbsp;₽</b> оплатили двое: Вася 4&nbsp;000&nbsp;₽, Коля 2&nbsp;000&nbsp;₽. Это один расход, в списке он будет как «Вася + Коля».")}
     <p><b>Исправить расход:</b> нажмите на него в списке. <b>Удалить:</b> крестик справа.</p>
     <p><b>Расход с пометкой «из моих»</b> появился из вкладки «Мои». Если удалить его крестиком, записи не пропадут, а вернутся в журнал «Мои». Там их можно поправить и перенести снова.</p>
     <p>Внизу вкладки есть кнопка «Итог →» для быстрого перехода к итогам.</p>`)}
@@ -619,6 +708,9 @@ function helpView(){
   ${sec("h-people","Люди и переводы",`
     <p><b>Добавить участника:</b> вкладка «Люди», имя внизу, можно сразу несколько через запятую.</p>
     ${ex("Впишите <b>Аня, Оля</b> и нажмите «+». Добавятся два участника.")}
+    <p><b>Доля.</b> Нажмите на имя участника. Если он с женой, поставьте долю 2, если ребёнок, 0,5. Все общие расходы будут делиться с учётом долей.</p>
+    ${ex("Ужин на <b>5&nbsp;000&nbsp;₽</b> делят Вася (доля 2) и Коля (доля 1). Вася должен 3&nbsp;333,33&nbsp;₽, Коля 1&nbsp;666,67&nbsp;₽.")}
+    <p><b>Реквизиты.</b> Там же можно вписать телефон для СБП или карту и банк. Они появятся в «Итоге», в тексте для чата и на картинке. В следующем мероприятии реквизиты человека с тем же именем подставятся сами.</p>
     <p><b>Удалить:</b> крестик у имени. Если у человека есть расходы или переводы, приложение переспросит, потому что они удалятся вместе с ним.</p>
     <p><b>Перевод вручную:</b> вкладка «Переводы», если кто-то перевёл часть суммы или перевёл раньше.</p>
     ${ex("Коля должен Васе 1&nbsp;000&nbsp;₽, но перевёл пока 500&nbsp;₽. Внесите перевод <b>Коля → Вася, 500&nbsp;₽</b>. В итоге останется долг 500&nbsp;₽.")}
@@ -631,28 +723,36 @@ function helpView(){
       <li><b>На 1 чел.</b> Общая сумма, делённая на всех.</li>
       <li><b>Баланс каждого.</b> Плюс: человеку должны. Минус: должен он. Плашки «рассчитался ✓», «должен», «ждёт».</li>
       <li><b>Сбор денег.</b> Сколько уже перевели и сколько осталось, «рассчитались 3 из 5».</li>
-      <li><b>Осталось перевести.</b> Кто кому и сколько. Перевели? Жмите «Оплачено».</li>
-      <li><b>Отправить в чат.</b> Текст или картинка, светлая или тёмная.</li>
+      <li><b>Осталось перевести.</b> Кто кому и сколько. Перевели? Жмите «Оплачено». <b>«Напомнить»</b> готовит сообщение должнику с суммой и реквизитами, <b>«Реквизиты»</b> копирует номер получателя.</li>
+      <li><b>Округление.</b> Над списком переводов: «Точно», «До 10 ₽» или «До 100 ₽», чтобы не переводить копейки.</li>
+      <li><b>Отправить в чат.</b> Текст или картинка, светлая или тёмная. <b>«Ссылка на мероприятие»</b> отправляет всё мероприятие друзьям, они добавят его к себе одним нажатием. <b>«Таблица для Excel»</b> сохраняет расходы, балансы и переводы файлом.</li>
       <li><b>Сравнить с прошлым.</b> Похожее мероприятие подставляется само. Синим сейчас, серым тогда. Есть картинка для чата. Нажмите на поле с названием, чтобы выбрать другое мероприятие или «Не сравнивать».</li>
       <li><b>Как прошло?</b> Смайлик и отзывы «Что понравилось» и «Что не понравилось». Заполните до отправки итога в чат, чтобы они попали в картинку.</li>
     </ul>
     ${ex("Бюджет <b>20&nbsp;000&nbsp;₽</b>, потратили <b>18&nbsp;500&nbsp;₽</b>. В «Плане и факте» будет: «Сэкономили 1&nbsp;500&nbsp;₽ · 7,5%».")}
     ${ex("Баня за 3&nbsp;000&nbsp;₽ на троих, платил Вася. Баланс: Вася <b>+2&nbsp;000&nbsp;₽</b> (ждёт), Петя и Коля по <b>−1&nbsp;000&nbsp;₽</b> (должен). Петя перевёл: он «рассчитался ✓», в «Сборе денег» «рассчитались 1 из 3». Вася станет «рассчитался», когда переведёт и Коля.")}
+    ${ex("Коля должен Васе 1&nbsp;666,67&nbsp;₽. С округлением «До 10 ₽» в переводах будет <b>1&nbsp;670&nbsp;₽</b>, а после «Оплачено» оба будут «рассчитался ✓».")}
     ${ex("Мероприятие <b>«Алтай, август»</b> само сравнится с <b>«Алтай, июль»</b>: в названиях есть общее слово. Если хотите сравнить с баней, выберите её в поле «Сравнить с».")}`)}
 
   ${sec("h-home","Главный экран, история и тема",`
     <p><b>История</b> (кнопка вверху) прокручивает к списку мероприятий. Фильтр «Показать»: все, избранное, этот месяц, прошлый, этот год или свой период.</p>
     ${ex("Сколько потратили на поездки за лето? Выберите «Период», с <b>01.06</b> по <b>31.08</b>. Под фильтром будет «Найдено 4 из 12 · потрачено …».")}
+    <p><b>Статистика</b> под фильтром: на что ушли деньги и кто сколько заплатил за выбранные мероприятия. Там же таблица этих расходов для Excel.</p>
+    <p><b>По образцу.</b> В «Новой тусовке» нажмите «+ Участники из прошлого мероприятия». Подставятся люди, их доли и реквизиты. То же делает кнопка «Новое мероприятие с этими участниками» на вкладке «Люди».</p>
+    ${ex("Каждую субботу баня одной компанией: выберите прошлую «Баню», поменяйте дату и нажмите «Погнали».")}
     <p>Закончившееся мероприятие открывается сразу на «Итоге», текущее и будущее на «Расходах».</p>
+    <p>Системная кнопка <b>«Назад»</b> на Android закрывает открытое окно или возвращает из мероприятия на главный экран.</p>
     <p><b>Удалить мероприятие:</b> красная корзина на карточке в списке или в шапке открытого мероприятия. Приложение переспросит, а после удаления ещё 10 секунд можно нажать «Вернуть».</p>
     <p><b>Тема:</b> крайняя правая круглая кнопка в верхней строке, рядом с «?». Можно светлую, тёмную или как в телефоне.</p>`)}
 
   ${sec("h-data","Где хранятся данные и как не потерять",`
     <p>Всё хранится <b>только на вашем телефоне</b>. На сервер ничего не уходит, друзья ваших записей не видят.</p>
     <p>Если удалить иконку или очистить данные браузера, записи пропадут. Поэтому время от времени нажимайте <b>«Сохранить копию»</b> внизу главного экрана и отправляйте файл себе в мессенджер. Там же видно, когда сохраняли последнюю копию.</p>
+    <p>Если копия давно не сохранялась, вверху главного экрана появится красное напоминание. «Позже» скроет его на 3 дня.</p>
     <p><b>Новый телефон:</b> поставьте приложение и нажмите «Загрузить из копии».</p>
     <p><b>Один расчёт на компанию:</b> ведёт один человек и отправляет итог в чат. Или ведущий сохраняет копию и пересылает файл, остальные загружают его через «Добавить к текущим».</p>
-    <p><b>Важно про «Добавить к текущим».</b> Новые мероприятия из копии добавятся. Но если такое мероприятие у вас уже есть (вы раньше загружали его из копии ведущего), оно заменится версией из файла целиком, а ваши правки в нём пропадут. Ваши собственные мероприятия не затрагиваются.</p>
+    <p><b>Ссылка на мероприятие</b> удобнее файла: друг открывает её и нажимает «Добавить к себе». «Мои» записи и избранное в ссылку не попадают. На iPhone ссылка откроется в Safari, а не в приложении с экрана «Домой», и мероприятие сохранится там. Чтобы оно попало в приложение, лучше загрузить файл копии через «Загрузить из копии».</p>
+    <p><b>Важно про «Добавить к текущим» и повторную ссылку.</b> Новые мероприятия из копии добавятся. Но если такое мероприятие у вас уже есть (вы раньше загружали его из копии ведущего), оно заменится версией из файла целиком, а ваши правки в нём пропадут. Ваши собственные мероприятия не затрагиваются.</p>
     ${ex("Вы загрузили от Васи «Баню, субботу» и добавили в неё свой расход. Через неделю Вася прислал новую копию. После «Добавить к текущим» «Баня» станет как у Васи, ваш расход исчезнет. Поэтому расходы лучше вносить тому, кто ведёт расчёт.")}
     <p><b>«Заменить всё»</b> удаляет все ваши мероприятия и ставит вместо них содержимое копии. Приложение переспросит.</p>
     <p>После первого открытия приложение работает <b>без интернета</b>, например в горах.</p>`)}
@@ -677,20 +777,23 @@ function homeView(){
   const list=shown.map(e=>{const s=settle(e);const left=s.plan.length;const per=periodRu(e);
     return `<div class="ev-wrap"><button class="event" data-open="${esc(e.id)}"><span class="main"><b>${e.fav?'<span class="fav-mark" aria-label="Избранное">★</span> ':""}${esc(e.name)}${moodOf(e)?" "+moodIcon(e.mood):""}</b><small>${per?esc(per)+" · ":""}${rubShort(s.total)}</small>${e.desc?`<small class="desc-line">${esc(e.desc.split("\n")[0])}</small>`:""}${e.people.length?`<span class="stack">${e.people.slice(0,5).map(p=>ava(p.name)).join("")}${e.people.length>5?`<span class="ava more">+${e.people.length-5}</span>`:""}</span>`:""}</span>${left?`<span class="pill warn">${left} перев.</span>`:`<span class="pill">в расчёте</span>`}</button><button type="button" class="ev-del" data-del-ev="${esc(e.id)}" aria-label="Удалить «${esc(e.name)}»" title="Удалить">${TRASH_SVG}</button></div>`}).join("");
   const modes=[["all","Все"],["fav","★ Избранное"],["month","Этот месяц"],["prev","Прошлый месяц"],["year","Этот год"],["range","Период"]];
-  const today=localISO(new Date());
+  const today=localISO(new Date());const tplE=S.events.find(x=>x.id===view.tpl)||null;
   return `<header class="brand"><div class="brand-row"><div class="logo" role="img" aria-label="Скинемся"><span class="coins"><i></i><i></i><i>₽</i></span><span class="word">скинем<em>ся</em></span></div><button type="button" class="icon-btn help-btn" id="helpBtn" aria-label="Как пользоваться">?</button><button type="button" class="icon-btn theme-btn" id="themeBtn" aria-label="Тема оформления">${THEME_ICONS[getTheme()]}</button></div><div class="tag-row"><p class="tagline">Делим общие траты без неловких разговоров</p>${S.events.length?`<button type="button" class="hist-btn" id="histBtn"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 7v5l3.2 2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>История</button>`:""}</div></header>
+  ${backupNag()}
   <section class="card party"><span class="confetti" aria-hidden="true"></span><h2 class="party-title">Новая тусовка <span class="party-em">🎉</span></h2><form class="form" id="newEvent">
     <input id="evName" maxlength="80" placeholder="Название, например «Алтай, август»" required>
     <div class="dates"><label>с<input id="evFrom" type="date" value="${today}"></label><label>по<input id="evTo" type="date"></label></div>
     <p class="hint">Дата «по» нужна, если мероприятие длилось несколько дней.</p>
-    <input id="evPeople" placeholder="Участники через запятую">
-    <input id="evPlan" type="number" inputmode="decimal" min="0" step="1" placeholder="Бюджет, ₽ (необязательно)">
+    <input id="evPeople" placeholder="Участники через запятую" value="${tplE?esc(tplE.people.map(p=>p.name).join(", ")):""}">
+    ${S.events.some(x=>x.people.length)?(tplE?`<p class="hint tpl-note">По образцу «${esc(tplE.name)}»: доли и реквизиты участников${Object.keys(tplE.planCats||{}).length?", план по категориям":""} перенесутся. <button type="button" class="link tpl-link" id="tplClear">Убрать</button></p>`:'<button type="button" class="link tpl-link" id="tplPick">+ Участники из прошлого мероприятия</button>'):""}
+    <input id="evPlan" type="number" inputmode="decimal" min="0" step="1" placeholder="Бюджет, ₽ (необязательно)" value="${tplE&&tplE.plan?esc(tplE.plan):""}">
     <details class="plan-edit desc-add"><summary>Добавить описание</summary><textarea id="evDesc" class="desc-input" rows="3" maxlength="2000" placeholder="Место, маршрут, что взять с собой, договорённости"></textarea></details>
     <button class="btn">Погнали</button></form></section>
   ${S.events.length?`<section class="card" id="historyBlock"><h2>Показать</h2>
     <div class="chips">${modes.map(([k,l])=>`<label class="pick"><input type="radio" name="fmode" value="${k}"${f.mode===k?" checked":""}><span>${l}</span></label>`).join("")}</div>
     ${f.mode==="range"?`<div class="dates" style="margin-top:10px"><label>с<input id="fFrom" type="date" value="${esc(f.from)}"></label><label>по<input id="fTo" type="date" value="${esc(f.to)}"></label></div>`:""}
     <p class="hint" style="margin-top:10px">${f.mode==="fav"?(shown.length?`В избранном: ${shown.length} · потрачено ${rubShort(sumAll)}`:"В избранном пока пусто. Откройте мероприятие и нажмите звёздочку вверху."):f.mode==="all"?`Всего мероприятий: ${S.events.length}`:`Найдено ${shown.length} из ${S.events.length} · потрачено ${rubShort(sumAll)}`}</p></section>`:""}
+  ${statsCard(shown)}
   ${list||(S.events.length?'<p class="empty">За этот период мероприятий нет.</p>':'<p class="empty">Пока пусто. Создайте первое мероприятие: поездку, встречу или совместную закупку.</p><button type="button" class="first-help" id="firstHelp">Впервые здесь? <b>Как пользоваться за 1 минуту →</b></button>')}
   <section class="card"><h2>Резервная копия</h2>
     ${offlineReady()?'<p class="hint ok" style="margin:0 0 8px">Приложение сохранено на телефоне и открывается без интернета.</p>':""}<p class="empty" style="margin-top:0">Данные хранятся только на этом устройстве. Сохраните копию в «Файлы» или отправьте себе в мессенджер, чтобы не потерять их.${S.lastBackup?` Последняя копия: ${new Date(S.lastBackup).toLocaleString("ru-RU",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})}.`:""}</p>
@@ -712,7 +815,11 @@ function eventView(e){
   if(t==="exp"){
     const ed=e.expenses.find(x=>x.id===view.edit);const inSplit=ed?amongOf(e,ed):e.people.map(p=>p.id);
     body=`<section class="card" id="expCard"><h2>${ed?"Изменить расход":"Добавить расход"}</h2>${e.people.length?`<form class="form" id="addExp">
-      <div class="two">${pickerField("expPayer","Кто платил",peopleOpts(e),ed?ed.payer:e.people[0].id)}<input id="expAmount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Сумма" required value="${ed?esc(ed.amount):""}"></div>
+      <div class="two" id="singlePay">${pickerField("expPayer","Кто платил",peopleOpts(e),ed?ed.payer:e.people[0].id)}<input id="expAmount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Сумма" required value="${ed?esc(ed.amount):""}"></div>
+      ${e.people.length>1?`<button type="button" class="link acc" id="multiToggle">${ed&&payersOf(e,ed).length>1?"Платил один человек":"Платили несколько человек"}</button>
+      <div class="catsplit" id="multiPay" hidden><p class="hint">Сколько заплатил каждый. Пустые строки не учитываются.</p>
+        ${e.people.map(p=>{const v=ed?(payersOf(e,ed).length>1?(ed.payers.find(q=>q.id===p.id)||{}).amount:""):"";return `<label class="ca-row"><span>${esc(p.name)}</span><input data-pay="${esc(p.id)}" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" value="${v?esc(v):""}"></label>`}).join("")}
+        <div class="ca-row"><span>Итого</span><b id="multiSum">0 ₽</b></div><p class="err" id="multiErr" hidden>Укажите сумму хотя бы у одного человека.</p></div>`:""}
       <div class="split-head"><span>Категории · можно несколько</span></div>
       ${catChips("cat",ed?catsOf(ed):(view.lastCats||[]))}
       <div class="catsplit" id="catSplit" hidden></div>
@@ -721,14 +828,16 @@ function eventView(e){
       <div class="chips">${e.people.map(p=>`<label class="pick"><input type="checkbox" name="among" value="${esc(p.id)}"${inSplit.includes(p.id)?" checked":""}><span>${esc(p.name)}</span></label>`).join("")}</div>
       <p class="err" id="splitErr" hidden>Отметьте хотя бы одного человека.</p>
       <div class="row-actions"><button class="btn">${ed?"Сохранить":"Добавить"}</button>${ed?'<button type="button" class="btn ghost" id="cancelEdit">Отмена</button>':""}</div></form>`:'<p class="empty">Сначала добавьте участников.</p>'}</section>
-    <section class="card"><h2>Расходы</h2>${e.expenses.length?e.expenses.map(x=>`<div class="item${x.id===view.edit?" editing":""}"><button class="main edit" data-edit-exp="${esc(x.id)}">${esc(nameOf(e,x.payer))}<small>${x.fromMine?'<span class="tag">из моих</span> ':""}${catsOf(x).length?`<span class="cat">${esc(catsLabel(x))}</span>${isManual(x)?' <span class="tag">суммы вручную</span>':""} · `:""}${x.note?esc(x.note)+" · ":""}${esc(amongLabel(e,x))}</small></button><span class="sum">${rub(kop(x.amount))}</span><button class="link danger" data-del-exp="${esc(x.id)}" aria-label="Удалить">×</button></div>`).join(""):'<p class="empty">Расходов пока нет.</p>'}${e.expenses.length?'<p class="empty">Нажмите на расход, чтобы изменить его.</p>':""}</section>
+    <section class="card"><h2>Расходы</h2>${e.expenses.length?e.expenses.map(x=>`<div class="item${x.id===view.edit?" editing":""}"><button class="main edit" data-edit-exp="${esc(x.id)}">${esc(payersLabel(e,x))}<small>${x.fromMine?'<span class="tag">из моих</span> ':""}${catsOf(x).length?`<span class="cat">${esc(catsLabel(x))}</span>${isManual(x)?' <span class="tag">суммы вручную</span>':""} · `:""}${x.note?esc(x.note)+" · ":""}${esc(amongLabel(e,x))}</small></button><span class="sum">${rub(kop(x.amount))}</span><button class="link danger" data-del-exp="${esc(x.id)}" aria-label="Удалить">×</button></div>`).join(""):'<p class="empty">Расходов пока нет.</p>'}${e.expenses.length?'<p class="empty">Нажмите на расход, чтобы изменить его.</p>':""}</section>
     ${e.expenses.length?'<button type="button" class="btn to-sum" id="toSum">Итог →</button>':""}`;
   }else if(t==="mine"){
     body=mineView(e);
   }else if(t==="ppl"){
-    body=`<section class="card"><h2>Участники · ${e.people.length}</h2><div class="chips">${e.people.map(p=>`<span class="chip">${ava(p.name)}${esc(p.name)}<button data-del-p="${esc(p.id)}" aria-label="Удалить">×</button></span>`).join("")||'<p class="empty">Никого нет.</p>'}</div>
+    body=`<section class="card"><h2>Участники · ${e.people.length}</h2><div class="chips">${e.people.map(p=>`<span class="chip"><button type="button" class="chip-main" data-edit-p="${esc(p.id)}" aria-label="${esc(p.name)}: доля и реквизиты">${ava(p.name)}<span>${esc(p.name)}</span>${wOf(p)!==1?`<span class="tag">×${wLabel(wOf(p))}</span>`:""}${p.pay?'<span class="tag pay-tag">₽</span>':""}</button><button data-del-p="${esc(p.id)}" aria-label="Удалить">×</button></span>`).join("")||'<p class="empty">Никого нет.</p>'}</div>
+      ${e.people.length?'<p class="hint" style="margin-top:10px">Нажмите на имя, чтобы указать долю (пара, ребёнок) и реквизиты для перевода.</p>':""}
       <p class="err" id="pDelMsg" hidden style="margin-top:10px"></p><form class="form" id="addP" style="margin-top:12px"><div class="two" style="grid-template-columns:1fr auto"><input id="pName" placeholder="Имя, можно несколько через запятую" required><button class="btn">+</button></div></form></section>
-      <section class="card"><h2>Мероприятие</h2><form class="form" id="editEv"><input id="evRename" maxlength="80" value="${esc(e.name)}" aria-label="Название"><label class="lbl">Описание<textarea id="evDescEdit" class="desc-input" rows="4" maxlength="2000" placeholder="Место, маршрут, что взять с собой, договорённости">${esc(e.desc||"")}</textarea></label><div class="dates"><label>с<input id="evDate" type="date" value="${esc(e.date)}"></label><label>по<input id="evDateTo" type="date" value="${esc(e.dateTo||"")}"></label></div><div class="row-actions"><button class="btn ghost small">Сохранить</button><button type="button" class="link danger" id="delEv">Удалить мероприятие</button></div></form></section>`;
+      <section class="card"><h2>Мероприятие</h2><form class="form" id="editEv"><input id="evRename" maxlength="80" value="${esc(e.name)}" aria-label="Название"><label class="lbl">Описание<textarea id="evDescEdit" class="desc-input" rows="4" maxlength="2000" placeholder="Место, маршрут, что взять с собой, договорённости">${esc(e.desc||"")}</textarea></label><div class="dates"><label>с<input id="evDate" type="date" value="${esc(e.date)}"></label><label>по<input id="evDateTo" type="date" value="${esc(e.dateTo||"")}"></label></div><div class="row-actions"><button class="btn ghost small">Сохранить</button><button type="button" class="link danger" id="delEv">Удалить мероприятие</button></div></form>
+      ${e.people.length?'<button type="button" class="btn ghost" id="tplFrom" style="width:100%;margin-top:12px">Новое мероприятие с этими участниками</button>':""}</section>`;
   }else if(t==="tr"){
     body=`<section class="card"><h2>Отметить перевод</h2>${e.people.length>1?`<form class="form" id="addTr"><div class="lbl">Кто переводит${pickerField("trFrom","Кто переводит",peopleOpts(e),e.people[0].id)}</div><div class="lbl">Кому${pickerField("trTo","Кому",peopleOpts(e),e.people[1].id)}</div><input id="trAmount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Сумма" required><p class="err" id="trErr" hidden>Выберите разных людей: кто переводит и кому.</p><button class="btn">Добавить</button></form>`:'<p class="empty">Нужно минимум два участника.</p>'}</section>
     <section class="card"><h2>Уже переведено</h2>${e.transfers.length?e.transfers.map(x=>`<div class="item">${ava(nameOf(e,x.from))}<div class="main">${esc(nameOf(e,x.from))}<small><span class="arrow">→</span> ${esc(nameOf(e,x.to))}</small></div><span class="sum">${rub(kop(x.amount))}</span><button class="link danger" data-del-tr="${esc(x.id)}" aria-label="Удалить">×</button></div>`).join(""):'<p class="empty">Переводов пока нет.</p>'}</section>`;
@@ -739,14 +848,21 @@ function eventView(e){
         return `<details class="catrow" data-cat="${r.k}"${(view.catOpen||[]).includes(r.k)?" open":""}><summary><div class="catline"><span><i class="cat-chev" aria-hidden="true"></i>${r.n}</span><span class="sum">${rubShort(r.a)} <small>${Math.round(r.a*100/s.total)}%</small></span></div><div class="bar"><i style="width:${Math.max(2,r.a*100/mx)}%"></i></div></summary>
           <div class="cat-payers">${ps.map(x=>`<div class="cp-row">${ava(x.name)}<span class="cp-name">${esc(x.name)}</span><span class="cp-bar"><i style="width:${Math.max(3,x.a*100/ps[0].a)}%"></i></span><span class="sum">${rubShort(x.a)}</span></div>`).join("")}</div></details>`}).join("")}
         <p class="hint" style="margin-top:6px">Нажмите на категорию, чтобы увидеть, кто платил.</p></section>`})()}
-    ${perPerson(e,s)?`<section class="card pp"><span>${perPerson(e,s).label}</span><b>${perPerson(e,s).text}</b>${perPerson(e,s).uneven?'<small>Часть расходов делилась не на всех, поэтому личные доли разные. Точные суммы в балансе ниже.</small>':""}</section>`:""}
-    <section class="card"><h2>Баланс каждого</h2>${e.people.map((p,i)=>{const b=s.bal[i],st=Math.abs(b)<1?'<span class="st ok">рассчитался ✓</span>':b<0?`<span class="st owe">должен ${rubShort(-b)}</span>`:`<span class="st wait">ждёт ${rubShort(b)}</span>`;
-      return `<div class="item">${ava(p.name)}<div class="main">${esc(p.name)}<small>${st}</small></div><span class="sum ${b>0?"p":b<0?"n":""}">${b>0?"+":""}${rub(b)}</span></div>`}).join("")}
+    ${perPerson(e,s)?`<section class="card pp"><span>${perPerson(e,s).label}</span><b>${perPerson(e,s).text}</b>${perPerson(e,s).uneven?`<small>${hasWeights(e)?"У части участников доля больше или меньше одной":"Часть расходов делилась не на всех"}, поэтому личные суммы разные. Точные суммы в балансе ниже.</small>`:""}</section>`:""}
+    <section class="card"><h2>Баланс каждого</h2>${e.people.map((p,i)=>{const b=s.bal[i],st=Math.abs(b)<tolOf(e)?'<span class="st ok">рассчитался ✓</span>':b<0?`<span class="st owe">должен ${rubShort(-b)}</span>`:`<span class="st wait">ждёт ${rubShort(b)}</span>`;
+      return `<div class="item">${ava(p.name)}<div class="main">${esc(p.name)}${wOf(p)!==1?` <span class="tag">доля ×${wLabel(wOf(p))}</span>`:""}<small>${st}</small></div><span class="sum ${b>0?"p":b<0?"n":""}">${b>0?"+":""}${rub(b)}</span></div>`}).join("")}
       <p class="empty">Зелёный: ему должны. Красный: должен он.</p></section>
     ${collectCard(e,s)}
-<section class="card"><h2>Осталось перевести</h2>${s.plan.length?s.plan.map((p,i)=>`<div class="item">${ava(nameOf(e,p.from))}<div class="main">${esc(nameOf(e,p.from))}<small><span class="arrow">→</span> ${esc(nameOf(e,p.to))}</small></div><span class="sum">${rub(p.a)}</span><button class="btn ghost small" data-paid="${i}" >Оплачено</button></div>`).join(""):'<p class="empty">Все в расчёте. Можно планировать следующую поездку.</p>'}</section>
+<section class="card" id="leftCard"><h2>Осталось перевести</h2>
+      ${e.people.length>1&&s.total?`<div class="chips round-chips" role="radiogroup" aria-label="Округление переводов">${[[0,"Точно"],[10,"До 10 ₽"],[100,"До 100 ₽"]].map(([v,l])=>`<label class="pick"><input type="radio" name="round" value="${v}"${(e.round||0)===v?" checked":""}><span>${l}</span></label>`).join("")}</div>
+      ${roundStep(e)?`<p class="hint" style="margin-top:6px">Переводы округлены до ${e.round} ₽. Разница до ${e.round/2} ₽ на человека не учитывается.</p>`:""}`:""}
+      ${s.plan.length?s.plan.map((p,i)=>{const to=e.people.find(x=>x.id===p.to)||{};return `<div class="tr-row"><div class="item">${ava(nameOf(e,p.from))}<div class="main">${esc(nameOf(e,p.from))}<small><span class="arrow">→</span> ${esc(nameOf(e,p.to))}${to.pay?` · <span class="pay-line">${esc(to.pay)}</span>`:""}</small></div><span class="sum">${rub(p.a)}</span></div>
+        <div class="row-actions tr-acts"><button type="button" class="btn ghost small" data-remind="${i}">Напомнить</button>${to.pay?`<button type="button" class="btn ghost small" data-copy-pay="${esc(p.to)}">Реквизиты</button>`:""}<button type="button" class="btn small" data-paid="${i}">Оплачено</button></div></div>`}).join("")
+        +(s.plan.some(p=>!(e.people.find(x=>x.id===p.to)||{}).pay)?'<p class="hint" style="margin-top:8px">Реквизиты получателя можно указать на вкладке «Люди»: нажмите на имя.</p>':""):'<p class="empty">Все в расчёте. Можно планировать следующую поездку.</p>'}</section>
     <section class="card"><h2>Отправить в чат</h2>${!e.mood||!e.liked&&!e.disliked?`<button type="button" class="nudge" id="toMood">Оценка и отзывы ниже, в «Как прошло?». Заполните их до отправки, чтобы они попали в итог ↓</button>`:""}
       <div class="row-actions"><button class="btn" id="copy">Скопировать текст</button><button class="btn ghost" id="makeImg">Светлая картинка</button><button class="btn ghost" id="makeImgDark">Тёмная картинка</button><span class="empty" id="copied" hidden>Скопировано</span></div>
+      <div class="row-actions" style="margin-top:8px"><button class="btn ghost" id="shareLink">Ссылка на мероприятие</button><button class="btn ghost" id="csvBtn">Таблица для Excel</button></div>
+      <p class="hint" id="linkMsg" hidden style="margin-top:8px"></p>
       <pre class="preview" id="textPreview">${esc(summaryText(e))}</pre>
       <textarea id="shareText" hidden readonly></textarea>
       <div id="imgBox" hidden><img id="imgOut" alt="Итог расчёта картинкой"><div class="row-actions"><button class="btn" id="shareImg" hidden>Отправить картинку</button><button class="btn ghost" id="saveImg" hidden>Сохранить картинку</button></div><p class="empty">На телефоне можно нажать на картинку и удерживать, затем выбрать «Сохранить» или «Поделиться».</p></div>
@@ -884,13 +1000,13 @@ function unpushMine(e){
 // сумма на человека: до рублей; «≈», если не делится ровно; «в среднем», если расходы делились не на всех
 function perPerson(e,s){const n=e.people.length;if(!n||!s.total)return null;
   const exact=s.total/n,rub=Math.round(exact/100)*100,approx=Math.abs(exact-rub)>0.5;
-  const uneven=e.expenses.some(x=>Array.isArray(x.among)&&amongOf(e,x).length<n);
+  const uneven=hasWeights(e)||e.expenses.some(x=>Array.isArray(x.among)&&amongOf(e,x).length<n);
   return {v:rub,text:(approx?"≈ ":"")+rubShort(rub),label:uneven?"В среднем на 1 чел.":"На 1 чел.",uneven}}
 // сбор денег: сколько нужно было собрать, сколько уже переведено, кто рассчитался
 function collectOf(e,s){const s0=settle(Object.assign({},e,{transfers:[]}));
   const need=s0.bal.reduce((t,b)=>t+(b<0?-b:0),0);if(!need)return null;
   const left=s.plan.reduce((t,p)=>t+p.a,0),got=Math.max(0,need-left);
-  const done=s.bal.filter(b=>Math.abs(b)<1).length,n=e.people.length;
+  const done=s.bal.filter(b=>Math.abs(b)<tolOf(e)).length,n=e.people.length;
   return {need,left,got,done,n,pct:Math.round(got*100/need)}}
 function collectCard(e,s){const c=collectOf(e,s);if(!c)return "";
   return `<section class="card collect"><h2>Сбор денег</h2>
@@ -911,10 +1027,87 @@ function summaryText(e){
   if(payers.length){L.push("");L.push("Платили:");payers.forEach(x=>L.push(`• ${x.n}: ${rubShort(x.a)}`))}
   L.push("");
   if(!s.plan.length){L.push("Все в расчёте.")}
-  else groupsOf(e,s).forEach(g=>{L.push(`Получатель: ${nameOf(e,g.to)}, всего ${rubShort(g.sum)}`);g.rows.forEach(r=>L.push(`• ${nameOf(e,r.from)}: ${rubShort(r.a)}`));L.push("")});
+  else groupsOf(e,s).forEach(g=>{const pay=(e.people.find(x=>x.id===g.to)||{}).pay;L.push(`Получатель: ${nameOf(e,g.to)}, всего ${rubShort(g.sum)}`);if(pay)L.push(`Реквизиты: ${pay}`);g.rows.forEach(r=>L.push(`• ${nameOf(e,r.from)}: ${rubShort(r.a)}`));L.push("")});
+  if(s.plan.length&&roundStep(e))L.push(`Переводы округлены до ${e.round} ₽.`);
   return L.join("\n").trim();
 }
 
+// ---------- общие помощники: копирование, «Поделиться», сохранение файла
+function copyText(t,msg){const done=()=>toast(msg||"Скопировано");
+  try{navigator.clipboard.writeText(t).then(done,()=>fallbackCopy(t,msg))}catch(err){fallbackCopy(t,msg)}}
+function fallbackCopy(t,msg){const ta=document.createElement("textarea");ta.value=t;ta.setAttribute("readonly","");ta.style.cssText="position:fixed;top:0;left:0;opacity:0;font-size:16px";document.body.appendChild(ta);ta.select();
+  let ok=false;try{ok=document.execCommand("copy")}catch(err){}ta.remove();toast(ok?(msg||"Скопировано"):"Не удалось скопировать. Выделите текст вручную.")}
+async function shareText(t,msg,title,isUrl){
+  try{if(navigator.share){await navigator.share(isUrl?{title:title||"Скинемся",url:t}:{text:t});return}}catch(err){if(err&&err.name==="AbortError")return}
+  copyText(t,msg)}
+const safeFile=n=>(n||"raschet").replace(/[^\wа-яё-]+/gi,"_").slice(0,40);
+async function saveFile(fname,data,type,title){
+  try{const file=new File([data],fname,{type});if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:title||fname});return "Файл отправлен: "+fname}}
+  catch(err){if(err&&err.name==="AbortError")return "Отменено."}
+  try{const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement("a");a.href=url;a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);return "Файл скачан: "+fname}
+  catch(err){return "Не удалось сохранить файл в этом браузере."}}
+// ---------- таблица для Excel (CSV: точка с запятой, запятая в дробях, UTF-8)
+const csvText=v=>{v=String(v??"");if(/^[=+\-@\t\r]/.test(v))v="'"+v;return /[";\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+const csvNum=k=>(k/100).toFixed(2).replace(".",",");
+const csvRow=a=>a.map(x=>typeof x==="object"&&x&&"k" in x?csvNum(x.k):csvText(x)).join(";");
+function eventCSV(e){const s=settle(e),R=[];
+  R.push(csvRow(["Мероприятие",e.name]));R.push(csvRow(["Даты",periodRu(e)]));R.push(csvRow(["Потрачено, ₽",{k:s.total}]));R.push(csvRow(["Участников",String(e.people.length)]));R.push("");
+  R.push(csvRow(["Расходы"]));R.push(csvRow(["Кто платил","Сумма, ₽","Категории","За что","На кого"]));
+  e.expenses.forEach(x=>{const ps=payersOf(e,x);R.push(csvRow([ps.length>1?ps.map(p=>nameOf(e,p.id)+" "+csvNum(p.a)).join(" + "):nameOf(e,x.payer),{k:kop(x.amount)},catsLabel(x)||"Без категории",x.note||"",amongLabel(e,x)]))});
+  R.push("");R.push(csvRow(["Баланс"]));R.push(csvRow(["Участник","Доля","Заплатил, ₽","Его часть расходов, ₽","Баланс, ₽","Реквизиты"]));
+  e.people.forEach((p,i)=>R.push(csvRow([p.name,wLabel(wOf(p)),{k:s.paid[i]},{k:s.owed[i]},{k:s.bal[i]},p.pay||""])));
+  R.push("");R.push(csvRow(["Осталось перевести"]));R.push(csvRow(["Кто","Кому","Сумма, ₽","Реквизиты получателя"]));
+  s.plan.forEach(p=>R.push(csvRow([nameOf(e,p.from),nameOf(e,p.to),{k:p.a},(e.people.find(x=>x.id===p.to)||{}).pay||""])));
+  if(e.transfers.length){R.push("");R.push(csvRow(["Уже переведено"]));R.push(csvRow(["Кто","Кому","Сумма, ₽"]));e.transfers.forEach(t=>R.push(csvRow([nameOf(e,t.from),nameOf(e,t.to),{k:kop(t.amount)}])))}
+  return R.join("\r\n")}
+function allCSV(list){const R=[csvRow(["Мероприятие","Даты","Кто платил","Сумма, ₽","Категории","За что","На кого"])];
+  list.forEach(e=>e.expenses.forEach(x=>R.push(csvRow([e.name,periodRu(e),payersLabel(e,x),{k:kop(x.amount)},catsLabel(x)||"Без категории",x.note||"",amongLabel(e,x)]))));
+  return R.join("\r\n")}
+// ---------- ссылка на мероприятие: всё мероприятие упаковано в саму ссылку, сервер не нужен
+const b64u={enc:u8=>{let s="";for(let i=0;i<u8.length;i+=8192)s+=String.fromCharCode.apply(null,u8.subarray(i,i+8192));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")},
+  dec:t=>{t=t.replace(/-/g,"+").replace(/_/g,"/");const s=atob(t);const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u}};
+async function eventLink(e){const o=JSON.parse(JSON.stringify(e));["mine","me","compareWith","fav"].forEach(k=>delete o[k]);o.expenses.forEach(x=>delete x.fromMine);
+  const raw=new TextEncoder().encode(JSON.stringify({app:"skinemsya",v:1,ev:o}));let packed="j"+b64u.enc(raw);
+  try{if(window.CompressionStream){const st=new Blob([raw]).stream().pipeThrough(new CompressionStream("deflate-raw"));packed="z"+b64u.enc(new Uint8Array(await new Response(st).arrayBuffer()))}}catch(err){}
+  return location.origin+location.pathname+"#e="+packed}
+async function readLink(t){if(!t||t.length>200000)throw new Error("big");const u=b64u.dec(t.slice(1));let txt;
+  if(t[0]==="z"){const st=new Blob([u]).stream().pipeThrough(new DecompressionStream("deflate-raw"));txt=await new Response(st).text()}else if(t[0]==="j")txt=new TextDecoder().decode(u);else throw new Error("fmt");
+  if(txt.length>5e6)throw new Error("big");const d=JSON.parse(txt);if(!d||d.app!=="skinemsya"||!d.ev)throw new Error("fmt");return d.ev}
+async function checkLinkImport(){const h=location.hash;if(!h.startsWith("#e="))return;
+  const clear=()=>{try{history.replaceState(history.state,"",location.pathname+location.search)}catch(err){}};
+  let ev=null;try{ev=sanitizeState({events:[await readLink(h.slice(3))]}).events[0]}catch(err){}
+  clear();if(!ev){toast("Не удалось открыть ссылку: она обрезана или браузер устарел. Попросите прислать её ещё раз или файлом копии.");return}
+  const mine=S.events.find(x=>x.id===ev.id),s=settle(ev),per=periodRu(ev);
+  closeSheet();const wrap=document.createElement("div");wrap.className="sheet-wrap";wrap.id="sheet";
+  wrap.innerHTML=`<div class="sheet-bg" data-close></div><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="lkTitle"><div class="grab" aria-hidden="true"></div>
+    <h3 id="lkTitle">Вам прислали мероприятие</h3>
+    <div class="del-info"><b>${esc(ev.name)}</b><small>${per?esc(per)+" · ":""}потрачено ${rubShort(s.total)} · ${ev.people.length} чел. · расходов: ${ev.expenses.length}</small></div>
+    <p class="del-warn">${mine?"Это мероприятие у вас уже есть. Если обновить, оно заменится версией из ссылки, а ваши правки в нём пропадут.":"Мероприятие добавится к вашим. Ваши остальные записи не изменятся."}</p>
+    <div class="del-actions"><button type="button" class="btn" id="lkYes">${mine?"Обновить моё":"Добавить к себе"}</button><button type="button" class="btn ghost" data-close>Не сейчас</button></div></div>`;
+  document.body.appendChild(wrap);sheetOpened();requestAnimationFrame(()=>wrap.classList.add("open"));
+  wrap.addEventListener("click",x=>{if(x.target.closest("[data-close]"))closeSheet()});
+  wrap.querySelector("#lkYes").onclick=()=>{const i=S.events.findIndex(x=>x.id===ev.id);if(i>=0){ev.fav=S.events[i].fav;ev.mine=S.events[i].mine;ev.me=S.events[i].me;S.events[i]=ev}else S.events.unshift(ev);
+    closeSheet();save();goEvent(ev.id,"sum");toast(mine?"Мероприятие обновлено":"Мероприятие добавлено")}}
+window.addEventListener("hashchange",checkLinkImport);
+// ---------- статистика по выбранным мероприятиям
+function statsOf(list){const cat={},ppl={};let total=0;
+  list.forEach(e=>{const s=settle(e);total+=s.total;Object.entries(catFact(e)).forEach(([k,v])=>cat[k]=(cat[k]||0)+v);
+    e.people.forEach((p,i)=>{const key=p.name.trim().toLowerCase();const o=ppl[key]||(ppl[key]={name:p.name.trim(),paid:0,part:0,n:0});o.paid+=s.paid[i];o.part+=s.owed[i];o.n++})});
+  const cats=CATS.filter(c=>cat[c[0]]).map(c=>({n:c[1],a:cat[c[0]]}));if(cat[""])cats.push({n:"Без категории",a:cat[""]});cats.sort((a,b)=>b.a-a.a);
+  return {total,cats,people:Object.values(ppl).filter(p=>p.paid||p.part).sort((a,b)=>b.part-a.part)}}
+function statsCard(list){if(!list.length)return "";const st=statsOf(list);if(!st.total)return "";const mc=st.cats.length?st.cats[0].a:1,mp=Math.max(1,...st.people.map(p=>Math.max(p.paid,p.part)));
+  return `<details class="card stats-card" id="statsBlock"${view.statsOpen?" open":""}><summary><span>Статистика · ${rubShort(st.total)}</span><i class="cat-chev" aria-hidden="true"></i></summary>
+    <p class="hint" style="margin:4px 0 10px">По мероприятиям, которые сейчас показаны фильтром: ${list.length}.</p>
+    <h2>На что ушли деньги</h2>${st.cats.map(c=>`<div class="catrow"><div class="catline"><span>${c.n}</span><span class="sum">${rubShort(c.a)} <small>${Math.round(c.a*100/st.total)}%</small></span></div><div class="bar"><i style="width:${Math.max(2,c.a*100/mc)}%"></i></div></div>`).join("")}
+    <h2 style="margin-top:16px">Люди: заплатил / его часть</h2>${st.people.slice(0,30).map(p=>`<div class="st-row">${ava(p.name)}<div class="main"><b>${esc(p.name)}</b><small>${p.n} ${p.n%10===1&&p.n%100!==11?"мероприятие":p.n%10>=2&&p.n%10<=4&&(p.n%100<10||p.n%100>=20)?"мероприятия":"мероприятий"}</small>
+      <span class="st-bars"><i class="pd" style="width:${p.paid*100/mp}%"></i><i class="pt" style="width:${p.part*100/mp}%"></i></span></div><span class="sum">${rubShort(p.paid)}<small>${rubShort(p.part)}</small></span></div>`).join("")}
+    <p class="hint" style="margin-top:8px">Синяя полоса: сколько человек заплатил сам. Жёлтая: его часть общих расходов. Люди объединены по имени.</p>
+    <button type="button" class="btn ghost" id="allCsv" style="width:100%;margin-top:12px">Таблица этих расходов для Excel</button></details>`}
+// ---------- напоминание о резервной копии
+function backupNag(){if(!S.events.some(e=>e.expenses.length))return "";const last=Date.parse(S.lastBackup||"")||0,now=Date.now();
+  if((S.lastChange||0)<=last||now<(S.backupSnooze||0))return "";if(last&&now-last<14*864e5)return "";
+  return `<section class="card nag" role="status"><b>${last?`Копия не сохранялась ${Math.floor((now-last)/864e5)} дн.`:"Копия ещё ни разу не сохранялась"}</b><p class="hint">Данные хранятся только в этом телефоне. Если очистить браузер или сменить телефон, они пропадут.</p>
+    <div class="row-actions"><button type="button" class="btn small" id="nagSave">Сохранить копию</button><button type="button" class="link" id="nagLater">Позже</button></div></section>`}
 // ---------- картинка итога ----------
 function svgImg(svg){return new Promise(res=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>res(null);im.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg.replace("<svg ",'<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" '))})}
 async function compareImage(e,o,dark){
@@ -1082,7 +1275,7 @@ async function summaryImage(e,dark){
   groups.forEach(g=>{
     const h=128+g.rows.length*72;cardAt(h);
     avaC(nameOf(e,g.to),P+32,y+64,32);
-    c.fillStyle=C.muted;c.font=F(700,22);c.fillText("ПОЛУЧАЕТ",P+84,y+48);
+    const gPay=(e.people.find(x=>x.id===g.to)||{}).pay;c.fillStyle=C.muted;c.font=F(700,22);c.fillText(gPay?fit("ПОЛУЧАЕТ · "+gPay,W-2*P-84-260,F(700,22)):"ПОЛУЧАЕТ",P+84,y+48);
     c.fillStyle=C.ink;c.font=F(800,36,1);c.fillText(fit(nameOf(e,g.to),480,F(800,36,1)),P+84,y+94);
     // сумма в плашке
     c.font=F(800,34);const sw=c.measureText(rubShort(g.sum)).width+40;
@@ -1102,16 +1295,26 @@ async function summaryImage(e,dark){
 function bind(e){
   const $=id=>document.getElementById(id),on=(sel,fn)=>document.querySelectorAll(sel).forEach(el=>el.addEventListener("click",fn));
   const splitNames=v=>v.split(/[,\n]/).map(x=>x.trim().slice(0,60)).filter(Boolean).slice(0,200);
-  if(view.help){const back=()=>{view.help=false;render();window.scrollTo(0,0)};$("helpBack").onclick=back;$("helpDone").onclick=back;return}
+  if(view.help){const back=()=>{goHome();window.scrollTo(0,0)};$("helpBack").onclick=back;$("helpDone").onclick=back;return}
   if(!e){
+    const tpl=S.events.find(x=>x.id===view.tpl)||null;
+    if($("tplPick"))$("tplPick").onclick=()=>openSheet("Участники из прошлого мероприятия",S.events.filter(x=>x.people.length).slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,40).map(x=>({value:x.id,label:x.name,sub:[x.date?periodRu(x):"",x.people.map(p=>p.name).join(", ")].filter(Boolean).join(" · ")})),view.tpl,v=>{
+      const keep={name:$("evName").value,from:$("evFrom").value,to:$("evTo").value,plan:$("evPlan").value,desc:$("evDesc").value};view.tpl=v;render();
+      $("evName").value=keep.name;$("evFrom").value=keep.from;$("evTo").value=keep.to;if(keep.plan)$("evPlan").value=keep.plan;$("evDesc").value=keep.desc});
+    if($("tplClear"))$("tplClear").onclick=()=>{const keep={name:$("evName").value,from:$("evFrom").value,to:$("evTo").value};view.tpl=null;render();$("evName").value=keep.name;$("evFrom").value=keep.from;$("evTo").value=keep.to};
     $("newEvent").onsubmit=ev=>{ev.preventDefault();let d1=$("evFrom").value,d2=$("evTo").value;if(d1&&d2&&d2<d1)[d1,d2]=[d2,d1];if(!d1&&d2){d1=d2;d2=""}
-      const ne={id:uid(),name:$("evName").value.trim(),date:d1,dateTo:d2&&d2!==d1?d2:"",plan:okAmt($("evPlan").value)?$("evPlan").value:"",planCats:{},desc:$("evDesc").value.trim(),people:splitNames($("evPeople").value).map(n=>({id:uid(),name:n})),expenses:[],transfers:[]};
-      S.events.unshift(ne);save();view={event:ne.id,tab:ne.people.length?"exp":"ppl"};render()};
+      const ne={id:uid(),name:$("evName").value.trim(),date:d1,dateTo:d2&&d2!==d1?d2:"",plan:okAmt($("evPlan").value)?$("evPlan").value:"",planCats:{},desc:$("evDesc").value.trim(),people:splitNames($("evPeople").value).map(n=>newPerson(n,tpl)),expenses:[],transfers:[]};
+      if(tpl&&!Object.keys(ne.planCats).length&&tpl.planCats)ne.planCats=Object.assign({},tpl.planCats);if(tpl&&tpl.round)ne.round=tpl.round;view.tpl=null;
+      S.events.unshift(ne);save();goEvent(ne.id,ne.people.length?"exp":"ppl")};
     on("[data-del-ev]",ev=>{ev.stopPropagation();const x=S.events.find(y=>y.id===ev.currentTarget.dataset.delEv);if(x)askDeleteEvent(x,true)});
-    on("[data-open]",ev=>{const id=ev.currentTarget.dataset.open,x=S.events.find(y=>y.id===id);view={event:id,tab:x&&isPast(x)?"sum":"exp"};render();window.scrollTo(0,0)});
-    const openHelp=()=>{view.help=true;render();window.scrollTo(0,0)};$("helpBtn").onclick=openHelp;if($("firstHelp"))$("firstHelp").onclick=openHelp;
+    on("[data-open]",ev=>{const id=ev.currentTarget.dataset.open,x=S.events.find(y=>y.id===id);goEvent(id,x&&isPast(x)?"sum":"exp")});
+    const openHelp=()=>goHelp();$("helpBtn").onclick=openHelp;if($("firstHelp"))$("firstHelp").onclick=openHelp;
     if($("histBtn"))$("histBtn").onclick=()=>{const h=$("historyBlock");if(h)h.scrollIntoView({behavior:"smooth",block:"start"})};
-    const setF=patch=>{S.filter=Object.assign({mode:"all",from:"",to:""},S.filter,patch);save();render()};
+    const setF=patch=>{S.filter=Object.assign({mode:"all",from:"",to:""},S.filter,patch);save(true);render()};
+    if($("nagSave"))$("nagSave").onclick=()=>$("exportBtn").click();
+    if($("nagLater"))$("nagLater").onclick=()=>{S.backupSnooze=Date.now()+3*864e5;save(true);render()};
+    if($("statsBlock"))$("statsBlock").addEventListener("toggle",()=>{view.statsOpen=$("statsBlock").open});
+    if($("allCsv"))$("allCsv").onclick=()=>{const list=filterEvents(S.events,S.filter||{mode:"all"});saveFile(`skinemsya-vse-${localISO(new Date())}.csv`,"\ufeff"+allCSV(list),"text/csv","Скинемся: расходы").then(t=>t&&toast(t))};
     document.querySelectorAll('input[name=fmode]').forEach(r=>r.onchange=()=>setF({mode:r.value}));
     if($("fFrom")){$("fFrom").onchange=()=>setF({from:$("fFrom").value});$("fTo").onchange=()=>setF({to:$("fTo").value})}
     $("themeBtn").onclick=()=>openSheet("Тема оформления",[
@@ -1121,7 +1324,7 @@ function bind(e){
     bindBackup($);
     return;
   }
-  $("back").onclick=()=>{view.event=null;view.edit=null;render()};
+  $("back").onclick=()=>goHome();
   on("[data-tab]",ev=>{view.tab=ev.currentTarget.dataset.tab;view.edit=null;render()});
   const commit=()=>{save();render()};
   if($("addExp")){
@@ -1153,7 +1356,24 @@ function bind(e){
     const getCats=bindCatChips("cat",drawSplit);
     $("expAmount").addEventListener("input",()=>{if(!catMode.manual)drawSplit();else{const l=document.getElementById("caLast");if(l){const ev=new Event("input");const f=document.querySelector("[data-ca]");if(f)f.dispatchEvent(ev);else drawSplit()}}});
     drawSplit();
+    const multi={on:!!(edx&&payersOf(e,edx).length>1)};
+    const payInputs=[...document.querySelectorAll("[data-pay]")];
+    const multiSum=()=>payInputs.reduce((t,i)=>t+Math.max(0,kop(i.value||0)),0);
+    const drawMulti=()=>{if(!$("multiPay"))return;$("multiPay").hidden=!multi.on;$("singlePay").classList.toggle("multi-on",multi.on);
+      $("expAmount").readOnly=multi.on;$("expAmount").required=!multi.on;$("multiToggle").textContent=multi.on?"Платил один человек":"Платили несколько человек";
+      if(multi.on){const k=multiSum();$("multiSum").textContent=rub(k);$("expAmount").value=k?(k/100).toFixed(2):"";$("expAmount").dispatchEvent(new Event("input"))}};
+    payInputs.forEach(i=>i.addEventListener("input",()=>{$("multiErr").hidden=true;drawMulti()}));
+    if($("multiToggle"))$("multiToggle").onclick=()=>{multi.on=!multi.on;
+      if(multi.on&&!multiSum()){const a=$("expAmount").value,pi=payInputs.find(i=>i.dataset.pay===$("expPayer").value);if(pi&&a)pi.value=a}
+      drawMulti()};
+    drawMulti();
     $("addExp").onsubmit=ev=>{ev.preventDefault();
+      let payers=null;
+      if(multi.on){const list=payInputs.map(i=>({id:i.dataset.pay,k:Math.max(0,kop(i.value||0))})).filter(x=>x.k>0);
+        if(!list.length){$("multiErr").hidden=false;return}
+        if(list.some(x=>x.k>=MAXK)){$("multiErr").textContent="Слишком большая сумма.";$("multiErr").hidden=false;return}
+        list.sort((a,b)=>b.k-a.k);$("expAmount").value=(list.reduce((t,x)=>t+x.k,0)/100).toFixed(2);$("expPayer").value=list[0].id;
+        if(list.length>1)payers=list.map(x=>({id:x.id,amount:(x.k/100).toFixed(2)}))}
       const sel=boxes.filter(b=>b.checked).map(b=>b.value);
       const ed=e.expenses.find(x=>x.id===view.edit);
       if(!sel.length){$("splitErr").hidden=false;return}
@@ -1166,6 +1386,7 @@ function bind(e){
       if(!okAmt($("expAmount").value)){$("expAmount").classList.add("invalid");$("expAmount").focus();return}
       if(!e.people.some(p=>p.id===$("expPayer").value))return;
       const data={payer:$("expPayer").value,amount:$("expAmount").value,cats,catAmounts,note:$("expNote").value.trim(),among:sel.length===e.people.length?null:sel};
+      if(payers)data.payers=payers;else if(ed)delete ed.payers;
       delete (ed||{}).cat;
       if(ed)Object.assign(ed,data);else e.expenses.push({id:uid(),...data});
       view.edit=null;commit()};
@@ -1174,11 +1395,16 @@ function bind(e){
   // удаление строки, созданной из «Моих», возвращает её записи в журнал
   on("[data-del-exp]",ev=>{const id=ev.currentTarget.dataset.delExp;e.expenses=e.expenses.filter(x=>x.id!==id);
     (e.mine||[]).forEach(x=>{if(x.pushedTo===id){x.pushed=false;delete x.pushedTo}});commit()});
-  if($("addP"))$("addP").onsubmit=ev=>{ev.preventDefault();splitNames($("pName").value).forEach(n=>e.people.push({id:uid(),name:n}));commit()};
+  if($("addP"))$("addP").onsubmit=ev=>{ev.preventDefault();splitNames($("pName").value).forEach(n=>e.people.push(newPerson(n)));commit()};
+  on("[data-edit-p]",ev=>{const p=e.people.find(x=>x.id===ev.currentTarget.dataset.editP);if(p)openPersonSheet(e,p)});
+  if($("tplFrom"))$("tplFrom").onclick=()=>{const id=e.id;goHome(()=>{view.tpl=id;render();window.scrollTo(0,0);const n=document.getElementById("evName");if(n)n.focus({preventScroll:true})})};
   on("[data-del-p]",ev=>{const b=ev.currentTarget,id=b.dataset.delP,p=e.people.find(x=>x.id===id);if(!p)return;
-    const nExp=e.expenses.filter(x=>x.payer===id).length,nTr=e.transfers.filter(x=>x.from===id||x.to===id).length;
+    const nExp=e.expenses.filter(x=>payersOf(e,x).length<2&&x.payer===id).length,nTr=e.transfers.filter(x=>x.from===id||x.to===id).length;
     if((nExp||nTr)&&b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="Удалить?";
       const m=$("pDelMsg");if(m){m.textContent=`У ${p.name} ${nExp?`расходов: ${nExp}`:""}${nExp&&nTr?", ":""}${nTr?`переводов: ${nTr}`:""}. Они удалятся вместе с участником. Нажмите «Удалить?» ещё раз, чтобы подтвердить.`;m.hidden=false}return}
+    // общий расход нескольких плательщиков: убираем только долю удалённого
+    e.expenses.forEach(x=>{const ps=payersOf(e,x);if(ps.length<2||!ps.some(q=>q.id===id))return;const rest=ps.filter(q=>q.id!==id);
+      x.amount=(rest.reduce((t,q)=>t+q.a,0)/100).toFixed(2);x.payer=rest[0].id;if(rest.length>1)x.payers=rest.map(q=>({id:q.id,amount:(q.a/100).toFixed(2)}));else delete x.payers});
     e.people=e.people.filter(x=>x.id!==id);e.expenses=e.expenses.filter(x=>x.payer!==id);e.transfers=e.transfers.filter(x=>x.from!==id&&x.to!==id);
     e.expenses.forEach(x=>{if(Array.isArray(x.among)){x.among=x.among.filter(v=>v!==id);if(!x.among.length)x.among=null}});
     (e.mine||[]).forEach(x=>{if(x.pushedTo&&!e.expenses.some(y=>y.id===x.pushedTo)){x.pushed=false;delete x.pushedTo}});
@@ -1190,6 +1416,15 @@ function bind(e){
     if($("trFrom").value===$("trTo").value){$("trErr").hidden=false;return}
     if(!okAmt($("trAmount").value)){$("trAmount").classList.add("invalid");$("trAmount").focus();return}e.transfers.push({id:uid(),from:$("trFrom").value,to:$("trTo").value,amount:$("trAmount").value});commit()};
   on("[data-del-tr]",ev=>{e.transfers=e.transfers.filter(x=>x.id!==ev.currentTarget.dataset.delTr);commit()});
+  document.querySelectorAll("input[name=round]").forEach(r=>r.onchange=()=>{e.round=+r.value||0;commit()});
+  on("[data-remind]",ev=>{const p=settle(e).plan[+ev.currentTarget.dataset.remind];if(!p)return;const to=e.people.find(x=>x.id===p.to)||{};
+    const t=`${nameOf(e,p.from)}, привет! По «${e.name}» осталось перевести ${rubShort(p.a)}. Получатель: ${nameOf(e,p.to)}.${to.pay?` Реквизиты: ${to.pay}.`:""} Спасибо!`;
+    shareText(t,"Текст напоминания скопирован. Вставьте его в чат.")});
+  on("[data-copy-pay]",ev=>{const to=e.people.find(x=>x.id===ev.currentTarget.dataset.copyPay);if(to&&to.pay)copyText(to.pay,`Реквизиты ${to.name} скопированы`)});
+  if($("shareLink"))$("shareLink").onclick=async()=>{const m=$("linkMsg");try{const url=await eventLink(e);
+      m.textContent=url.length>4000?`Ссылка длинная (${url.length} символов). В Telegram может не поместиться в одно сообщение. Для больших мероприятий надёжнее «Сохранить копию» на главном экране.`:"Получатель откроет ссылку и сможет добавить мероприятие к себе.";m.hidden=false;
+      shareText(url,"Ссылка скопирована. Отправьте её в чат.",`«${e.name}» в «Скинемся»`,true)}catch(err){m.textContent="Не удалось сделать ссылку в этом браузере. Используйте «Сохранить копию».";m.hidden=false}};
+  if($("csvBtn"))$("csvBtn").onclick=()=>saveFile(`skinemsya-${safeFile(e.name)}.csv`,"\ufeff"+eventCSV(e),"text/csv",e.name).then(t=>{const m=$("linkMsg");if(m&&t){m.textContent=t;m.hidden=false}});
   on("[data-paid]",ev=>{const p=settle(e).plan[+ev.currentTarget.dataset.paid];if(p){e.transfers.push({id:uid(),from:p.from,to:p.to,amount:(p.a/100).toFixed(2)});commit()}});
   on("[data-more-btn]",ev=>{const b=ev.currentTarget,box=document.querySelector(`[data-more="${b.dataset.moreBtn}"]`);const open=box.hidden;
     box.hidden=!open;b.textContent=open?"Свернуть":"Ещё +"+box.children.length;b.setAttribute("aria-expanded",open);view.catsOpen=open});
@@ -1249,14 +1484,16 @@ function sanitizeState(st){
     if(!e||typeof e!=="object")return;
     let eid=okId(e.id)&&!seenEv.has(e.id)?e.id:uid();seenEv.add(eid);
     const map={},people=[];
-    (Array.isArray(e.people)?e.people:[]).slice(0,200).forEach(p=>{if(!p)return;const nid=okId(p.id)&&!map[p.id]?p.id:uid();if(p.id!=null)map[p.id]=nid;people.push({id:nid,name:str(p.name,60).trim()||"Без имени"})});
+    (Array.isArray(e.people)?e.people:[]).slice(0,200).forEach(p=>{if(!p)return;const nid=okId(p.id)&&!map[p.id]?p.id:uid();if(p.id!=null)map[p.id]=nid;const w=Number(p.w),pay=str(p.pay,80).trim();const o={id:nid,name:str(p.name,60).trim()||"Без имени"};if(W_OPTS.includes(w)&&w!==1)o.w=w;if(pay)o.pay=pay;people.push(o)});
     const pid=v=>map[v]||null;
     const cats=a=>(Array.isArray(a)?a:[]).filter(k=>catKeys.has(k));
     const catAm=o=>{if(!o||typeof o!=="object")return null;const r={};Object.keys(o).forEach(k=>{if(catKeys.has(k))r[k]=amt(o[k])});return Object.keys(r).length?r:null};
     const expenses=(Array.isArray(e.expenses)?e.expenses:[]).slice(0,5000).filter(x=>x&&pid(x.payer)).map(x=>{
       const c=cats(Array.isArray(x.cats)?x.cats:(x.cat?[x.cat]:[]));
       const among=Array.isArray(x.among)?x.among.map(pid).filter(Boolean):null;
-      return {id:okId(x.id)?x.id:uid(),payer:pid(x.payer),amount:amt(x.amount),cats:c,catAmounts:catAm(x.catAmounts),note:str(x.note,300),among:among&&among.length?among:null,fromMine:!!x.fromMine}});
+      const pays=Array.isArray(x.payers)?x.payers.slice(0,200).filter(q=>q&&pid(q.id)).map(q=>({id:pid(q.id),amount:amt(q.amount)})):[];
+      const o={id:okId(x.id)?x.id:uid(),payer:pid(x.payer),amount:amt(x.amount),cats:c,catAmounts:catAm(x.catAmounts),note:str(x.note,300),among:among&&among.length?among:null,fromMine:!!x.fromMine};
+      if(pays.length>1)o.payers=pays;return o});
     const expIds=new Set(expenses.map(x=>x.id));
     const transfers=(Array.isArray(e.transfers)?e.transfers:[]).slice(0,5000).filter(t=>t&&pid(t.from)&&pid(t.to)&&pid(t.from)!==pid(t.to))
       .map(t=>({id:okId(t.id)?t.id:uid(),from:pid(t.from),to:pid(t.to),amount:amt(t.amount)}));
@@ -1266,16 +1503,17 @@ function sanitizeState(st){
     const planCats={};if(e.planCats&&typeof e.planCats==="object")Object.keys(e.planCats).forEach(k=>{if(catKeys.has(k))planCats[k]=amt(e.planCats[k])});
     events.push({id:eid,name:str(e.name,80).trim()||"Без названия",date:date(e.date),dateTo:date(e.dateTo),people,expenses,transfers,mine,
       me:pid(e.me)||"",plan:e.plan?amt(e.plan):"",planCats,desc:str(e.desc,2000),liked:str(e.liked,500),disliked:str(e.disliked,500),
-      mood:moodKeys.has(e.mood)?e.mood:"",fav:!!e.fav,compareWith:okId(e.compareWith)||e.compareWith==="none"?e.compareWith:""});
+      mood:moodKeys.has(e.mood)?e.mood:"",fav:!!e.fav,round:e.round===10||e.round===100?e.round:0,compareWith:okId(e.compareWith)||e.compareWith==="none"?e.compareWith:""});
   });
   const f=st&&st.filter&&typeof st.filter==="object"?st.filter:{};
   return {events,filter:{mode:["all","fav","month","prev","year","range"].includes(f.mode)?f.mode:"all",from:date(f.from),to:date(f.to)},
-    lastBackup:typeof(st&&st.lastBackup)==="string"?st.lastBackup.slice(0,40):undefined};
+    lastBackup:typeof(st&&st.lastBackup)==="string"?st.lastBackup.slice(0,40):undefined,
+    lastChange:Number(st&&st.lastChange)||0,backupSnooze:Number(st&&st.backupSnooze)||0};
 }
 function validBackup(d){return d&&Array.isArray(d.events)&&d.events.every(e=>e&&e.id&&Array.isArray(e.people)&&Array.isArray(e.expenses)&&Array.isArray(e.transfers))}
 function bindBackup($){
   const msg=t=>{$("backupMsg").textContent=t;$("backupMsg").hidden=false};
-  const stamp=()=>{S.lastBackup=new Date().toISOString();save()};
+  const stamp=()=>{S.lastBackup=new Date().toISOString();save(true);const n=document.querySelector(".nag");if(n)n.remove()};
   $("exportBtn").onclick=async()=>{
     const data=JSON.stringify({app:"skinemsya",version:1,saved:new Date().toISOString(),events:S.events},null,1);
     const fname=`skinemsya-${new Date().toISOString().slice(0,10)}.json`;
@@ -1316,6 +1554,7 @@ document.addEventListener("submit",ev=>{const bad=[...ev.target.querySelectorAll
 document.addEventListener("input",ev=>{if(ev.target.classList)ev.target.classList.remove("invalid")});
 S=sanitizeState(S);
 render();
+checkLinkImport();
 // офлайн-режим: только на настоящем сайте (не внутри Claude и не из файла)
 try{if("serviceWorker" in navigator&&window.isSecureContext&&window.top===window&&location.protocol!=="file:")
   navigator.serviceWorker.register("sw.js").catch(()=>{})}catch(err){}
