@@ -499,7 +499,7 @@ function openSheet(title,options,sel,onPick){
 // новый участник: доля и реквизиты берутся из образца, реквизиты — ещё и из прошлых мероприятий с тем же именем
 function lastPayFor(name){const n=String(name).trim().toLowerCase();
   const evs=S.events.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||""));
-  for(const ev of evs){const p=ev.people.find(x=>x.name.trim().toLowerCase()===n&&x.pay);if(p)return p.pay}return ""}
+  for(const ev of evs){if(ev.imported)continue;const p=ev.people.find(x=>x.name.trim().toLowerCase()===n&&x.pay);if(p)return p.pay}return ""}
 function newPerson(name,tpl){const o={id:uid(),name};const t=tpl&&tpl.people.find(x=>x.name.trim().toLowerCase()===name.trim().toLowerCase());
   if(t&&wOf(t)!==1)o.w=t.w;const pay=(t&&t.pay)||lastPayFor(name);if(pay)o.pay=pay;return o}
 // карточка участника: имя, доля, реквизиты
@@ -1066,27 +1066,30 @@ function allCSV(list){const R=[csvRow(["Мероприятие","Даты","Кт
 // ---------- ссылка на мероприятие: всё мероприятие упаковано в саму ссылку, сервер не нужен
 const b64u={enc:u8=>{let s="";for(let i=0;i<u8.length;i+=8192)s+=String.fromCharCode.apply(null,u8.subarray(i,i+8192));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")},
   dec:t=>{t=t.replace(/-/g,"+").replace(/_/g,"/");const s=atob(t);const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u}};
-async function eventLink(e){const o=JSON.parse(JSON.stringify(e));["mine","me","compareWith","fav"].forEach(k=>delete o[k]);o.expenses.forEach(x=>delete x.fromMine);
+async function eventLink(e){const o=JSON.parse(JSON.stringify(e));["mine","me","compareWith","fav","imported"].forEach(k=>delete o[k]);o.expenses.forEach(x=>delete x.fromMine);
   const raw=new TextEncoder().encode(JSON.stringify({app:"skinemsya",v:1,ev:o}));let packed="j"+b64u.enc(raw);
   try{if(window.CompressionStream){const st=new Blob([raw]).stream().pipeThrough(new CompressionStream("deflate-raw"));packed="z"+b64u.enc(new Uint8Array(await new Response(st).arrayBuffer()))}}catch(err){}
   return location.origin+location.pathname+"#e="+packed}
 async function readLink(t){if(!t||t.length>200000)throw new Error("big");const u=b64u.dec(t.slice(1));let txt;
-  if(t[0]==="z"){const st=new Blob([u]).stream().pipeThrough(new DecompressionStream("deflate-raw"));txt=await new Response(st).text()}else if(t[0]==="j")txt=new TextDecoder().decode(u);else throw new Error("fmt");
+  if(t[0]==="z"){const rd=new Blob([u]).stream().pipeThrough(new DecompressionStream("deflate-raw")).getReader();const parts=[];let n=0;
+    for(;;){const {done,value}=await rd.read();if(done)break;n+=value.length;if(n>2e6){try{rd.cancel()}catch(err){}throw new Error("big")}parts.push(value)}
+    const all=new Uint8Array(n);let o=0;parts.forEach(c=>{all.set(c,o);o+=c.length});txt=new TextDecoder().decode(all)}else if(t[0]==="j")txt=new TextDecoder().decode(u);else throw new Error("fmt");
   if(txt.length>5e6)throw new Error("big");const d=JSON.parse(txt);if(!d||d.app!=="skinemsya"||!d.ev)throw new Error("fmt");return d.ev}
 async function checkLinkImport(){const h=location.hash;if(!h.startsWith("#e="))return;
   const clear=()=>{try{history.replaceState(history.state,"",location.pathname+location.search)}catch(err){}};
-  let ev=null;try{ev=sanitizeState({events:[await readLink(h.slice(3))]}).events[0]}catch(err){}
+  let ev=null;try{const raw=await readLink(h.slice(3));if(raw&&typeof raw==="object")["mine","me","fav","compareWith","imported"].forEach(k=>delete raw[k]);ev=sanitizeState({events:[raw]}).events[0]}catch(err){}
   clear();if(!ev){toast("Не удалось открыть ссылку: она обрезана или браузер устарел. Попросите прислать её ещё раз или файлом копии.");return}
   const mine=S.events.find(x=>x.id===ev.id),s=settle(ev),per=periodRu(ev);
   closeSheet();const wrap=document.createElement("div");wrap.className="sheet-wrap";wrap.id="sheet";
   wrap.innerHTML=`<div class="sheet-bg" data-close></div><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="lkTitle"><div class="grab" aria-hidden="true"></div>
     <h3 id="lkTitle">Вам прислали мероприятие</h3>
     <div class="del-info"><b>${esc(ev.name)}</b><small>${per?esc(per)+" · ":""}потрачено ${rubShort(s.total)} · ${ev.people.length} чел. · расходов: ${ev.expenses.length}</small></div>
+    ${ev.people.some(p=>p.pay)?`<div class="ex"><span class="ex-tag">Реквизиты</span>${ev.people.filter(p=>p.pay).map(p=>`${esc(p.name)}: ${esc(p.pay)}`).join("<br>")}<br>Перед переводом сверьте их с получателем лично: ссылку мог изменить кто угодно.</div>`:""}
     <p class="del-warn">${mine?"Это мероприятие у вас уже есть. Если обновить, оно заменится версией из ссылки, а ваши правки в нём пропадут.":"Мероприятие добавится к вашим. Ваши остальные записи не изменятся."}</p>
     <div class="del-actions"><button type="button" class="btn" id="lkYes">${mine?"Обновить моё":"Добавить к себе"}</button><button type="button" class="btn ghost" data-close>Не сейчас</button></div></div>`;
   document.body.appendChild(wrap);sheetOpened();requestAnimationFrame(()=>wrap.classList.add("open"));
   wrap.addEventListener("click",x=>{if(x.target.closest("[data-close]"))closeSheet()});
-  wrap.querySelector("#lkYes").onclick=()=>{const i=S.events.findIndex(x=>x.id===ev.id);if(i>=0){ev.fav=S.events[i].fav;ev.mine=S.events[i].mine;ev.me=S.events[i].me;S.events[i]=ev}else S.events.unshift(ev);
+  wrap.querySelector("#lkYes").onclick=()=>{ev.imported=true;const i=S.events.findIndex(x=>x.id===ev.id);if(i>=0){ev.fav=S.events[i].fav;ev.mine=S.events[i].mine;ev.me=S.events[i].me;S.events[i]=ev}else S.events.unshift(ev);
     closeSheet();save();goEvent(ev.id,"sum");toast(mine?"Мероприятие обновлено":"Мероприятие добавлено")}}
 window.addEventListener("hashchange",checkLinkImport);
 // ---------- статистика по выбранным мероприятиям
@@ -1477,7 +1480,7 @@ function sanitizeState(st){
   const okId=v=>typeof v==="string"&&/^[A-Za-z0-9_-]{1,40}$/.test(v);
   const str=(v,n)=>String(v==null?"":v).slice(0,n);
   const amt=v=>{const n=parseFloat(String(v==null?"":v).replace(",","."));return isFinite(n)&&n>=0&&n<1e9?String(v).replace(",",".").slice(0,16):"0"};
-  const date=v=>typeof v==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(v)?v:"";
+  const date=v=>{if(typeof v!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(v))return "";const d=new Date(v+"T00:00:00Z");return !isNaN(d)&&d.toISOString().slice(0,10)===v?v:""};
   const catKeys=new Set(CATS.map(c=>c[0])),moodKeys=new Set(MOODS.map(m=>m[0]));
   const events=[],seenEv=new Set();
   (Array.isArray(st&&st.events)?st.events:[]).slice(0,500).forEach(e=>{
@@ -1503,7 +1506,7 @@ function sanitizeState(st){
     const planCats={};if(e.planCats&&typeof e.planCats==="object")Object.keys(e.planCats).forEach(k=>{if(catKeys.has(k))planCats[k]=amt(e.planCats[k])});
     events.push({id:eid,name:str(e.name,80).trim()||"Без названия",date:date(e.date),dateTo:date(e.dateTo),people,expenses,transfers,mine,
       me:pid(e.me)||"",plan:e.plan?amt(e.plan):"",planCats,desc:str(e.desc,2000),liked:str(e.liked,500),disliked:str(e.disliked,500),
-      mood:moodKeys.has(e.mood)?e.mood:"",fav:!!e.fav,round:e.round===10||e.round===100?e.round:0,compareWith:okId(e.compareWith)||e.compareWith==="none"?e.compareWith:""});
+      mood:moodKeys.has(e.mood)?e.mood:"",fav:!!e.fav,imported:!!e.imported,round:e.round===10||e.round===100?e.round:0,compareWith:okId(e.compareWith)||e.compareWith==="none"?e.compareWith:""});
   });
   const f=st&&st.filter&&typeof st.filter==="object"?st.filter:{};
   return {events,filter:{mode:["all","fav","month","prev","year","range"].includes(f.mode)?f.mode:"all",from:date(f.from),to:date(f.to)},
@@ -1541,7 +1544,7 @@ function bindBackup($){
     r.readAsText(f)};
   $("importCancel").onclick=()=>{pending=null;$("importAsk").hidden=true};
   $("importMerge").onclick=()=>{if(!pending)return;let added=0,upd=0;
-    pending.events.forEach(ne=>{const i=S.events.findIndex(x=>x.id===ne.id);if(i>=0){S.events[i]=ne;upd++}else{S.events.push(ne);added++}});
+    pending.events.forEach(ne=>{const i=S.events.findIndex(x=>x.id===ne.id);if(i<0||S.events[i].imported)ne.imported=true;if(i>=0){S.events[i]=ne;upd++}else{S.events.push(ne);added++}});
     pending=null;save();render();msgAfter(`Загружено: новых ${added}, обновлено ${upd}.`)};
   $("importReplace").onclick=()=>{if(!pending)return;
     if($("importReplace").dataset.armed!=="1"){$("importReplace").dataset.armed="1";$("importReplace").textContent="Точно заменить? Нажмите ещё раз";return}
