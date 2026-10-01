@@ -556,7 +556,8 @@ try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",applyTh
 applyTheme();
 // мероприятие закончилось: последний день раньше сегодняшнего
 const localISO=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-function isPast(e){const last=e.dateTo||e.date;if(!last)return false;return last<localISO(new Date())}
+// без дат: считаем прошедшим, если расходы уже внесены (старые записи и копии без дат)
+function isPast(e){const last=e.dateTo||e.date;if(!last)return (e.expenses||[]).length>0;return last<localISO(new Date())}
 // ---------- инструкция
 function helpView(){
   const ex=t=>`<div class="ex"><span class="ex-tag">Пример</span>${t}</div>`;
