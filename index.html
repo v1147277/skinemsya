@@ -758,7 +758,7 @@ function helpView(){
       <li><b>Осталось перевести.</b> Кто кому и сколько. Перевели? Жмите «Оплачено». <b>«Напомнить»</b> готовит сообщение должнику с суммой и реквизитами, <b>«Реквизиты»</b> копирует номер получателя.</li>
       <li><b>Округление.</b> Над списком переводов: «Точно», «До 10 ₽» или «До 100 ₽», чтобы не переводить копейки.</li>
       <li><b>Отправить в чат.</b> Кнопка «Поделиться» открывает меню: <b>текстом</b>, <b>картинкой</b> (в теме приложения: светлая или тёмная), <b>ссылкой</b> (друзья добавят мероприятие к себе одним нажатием) или <b>таблицей Excel</b> (файл .xlsx: итог, расходы, переводы). Текст итога можно посмотреть под кнопкой.</li>
-      <li><b>Сравнить с прошлым.</b> Похожее мероприятие подставляется само. Над таблицей вывод: потратили больше или меньше, на сколько, сколько на человека и что изменилось сильнее всего. Синим сейчас, серым тогда. «Поделиться картинкой» отправит сравнение в теме приложения. Нажмите на поле с названием, чтобы выбрать другое мероприятие или «Не сравнивать».</li>
+      <li><b>Сравнить с прошлым.</b> Похожее мероприятие подставляется само. Над таблицей вывод: потратили больше или меньше, на сколько, сколько на человека и что изменилось сильнее всего. Синим сейчас, серым тогда. «Поделиться сравнением»: картинкой (в теме приложения) или файлом Excel. Нажмите на поле с названием, чтобы выбрать другое мероприятие или «Не сравнивать».</li>
       <li><b>Как прошло?</b> Смайлик и отзывы «Что понравилось» и «Что не понравилось». Заполните до отправки итога в чат, чтобы они попали в картинку.</li>
     </ul>
     ${ex("Бюджет <b>20&nbsp;000&nbsp;₽</b>, потратили <b>18&nbsp;500&nbsp;₽</b>. В «Плане и факте» будет: «Сэкономили 1&nbsp;500&nbsp;₽ · 7,5%».")}
@@ -996,7 +996,8 @@ function compareCard(e,s){
       <div class="pftable cmp"><div class="pfrow head"><span></span><span><i class="colpill now">Сейчас</i></span><span><i class="colpill then">Тогда</i></span><span>Разница</span></div>
       ${rows.map((r,i)=>r.sub?`<div class="cat-group"><div class="pfrow sub"><span>${r.label}</span></div>`:`<div class="pfrow${r.total?" total":""}"><span>${r.label}</span><span>${cmpVal(r,r.a)}</span><span>${cmpVal(r,r.b)}</span><span class="${r.cls||""}">${cmpDiff(r)}${r.b&&r.d?`<small>${pct(r.pc)}</small>`:""}</span></div>`).join("")}${rows.some(r=>r.sub)?"</div>":""}</div>
       <p class="hint">Синие цифры: сейчас, серые: тогда. В «Разнице» зелёный значит сейчас дешевле, красный дороже. Проценты от прошлого мероприятия.</p>
-      <button type="button" class="btn ghost share-main" id="cmpImg" style="margin-top:12px">Поделиться картинкой</button>
+      <button type="button" class="btn ghost share-main" id="cmpShare" style="margin-top:12px"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 15V3M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Поделиться сравнением</button>
+      <p class="hint" id="cmpMsg" hidden style="margin-top:8px"></p>
       <div id="cmpImgBox" class="imgbox" hidden><img id="cmpImgOut" alt="Сравнение картинкой"><div class="row-actions"><button class="btn" id="cmpShareImg" hidden>Отправить картинку</button><button class="btn ghost" id="cmpSaveImg">Сохранить картинку</button></div><p class="empty">На телефоне можно нажать на картинку и удерживать, затем выбрать «Сохранить» или «Поделиться».</p></div>`}
   return `<section class="card"><h2>Сравнить с прошлым</h2>${pickerField("cmpSel","Сравнить с",cmpOpts,o?o.id:"none")}
     ${table}</section>`;
@@ -1143,6 +1144,16 @@ function eventXlsx(e){const s=settle(e),ppl=perPerson(e,s);
 function allXlsx(list){const tot=list.map(e=>({e,s:settle(e)}));
   return makeXlsx([{name:"Мероприятия",rows:[[XS("Мероприятие",true),XS("Даты",true),XS("Участников",true),XS("Потрачено, ₽",true)],...tot.map(({e,s})=>[XS(e.name),XS(periodRu(e)),XN(e.people.length),XK(s.total)]),[XS("Итого",true),null,null,XK(tot.reduce((t,x)=>t+x.s.total,0),true)]],widths:[30,26,12,16]},
     {name:"Расходы",rows:[[XS("Мероприятие",true),XS("Даты",true),XS("Кто платил",true),XS("Сумма, ₽",true),XS("Категории",true),XS("За что",true),XS("На кого",true)],...list.flatMap(e=>e.expenses.map(x=>[XS(e.name),XS(periodRu(e)),XS(payersLabel(e,x)),XK(kop(x.amount)),XS(catsLabel(x)||"Без категории"),XS(x.note||""),XS(amongLabel(e,x))]))],widths:[26,22,20,14,22,28,28]}])}
+// сравнение файлом Excel: вывод и таблица «Сейчас / Тогда»
+function compareXlsx(e,o){const s=settle(e),rows=compareRows(e,s,o),vd=compareVerdict(e,s,o);
+  const R=[[XS("Сравнение мероприятий",true)],[XS("Сейчас"),XS(e.name,true),XS(periodRu(e))],[XS("Тогда"),XS(o.name,true),XS(periodRu(o))],[],
+    [XS(vd.main,true)],...vd.notes.map(t=>[XS(t)]),[],
+    [XS("Показатель",true),XS("Сейчас",true),XS("Тогда",true),XS("Разница",true),XS("Разница, %",true)]];
+  rows.forEach(r=>{if(r.sub){R.push([],[XS(r.label,true)]);return}
+    const v=x=>x==null?XS("—"):r.money?XK(x,r.total):XN(x);const sign=r.d>0?1:-1;
+    R.push([XS(r.label,r.total),v(r.a),v(r.b),r.d==null?XS("—"):r.money?XK(r.d,r.total):XN(r.d),r.b&&r.d?XN(Math.round(r.pc*10)/10*sign):XS("")])});
+  R.push([],[XS("Разница = сейчас − тогда. Минус: сейчас дешевле. Проценты от прошлого мероприятия.")]);
+  return makeXlsx([{name:"Сравнение",rows:R,widths:[30,22,22,16,14]}])}
 // тема картинок: как в приложении сейчас
 function themeDark(){const t=getTheme();if(t!=="auto")return t==="dark";try{return matchMedia("(prefers-color-scheme: dark)").matches}catch(err){return false}}
 // отдать файл: сразу в меню «Поделиться», если телефон умеет; иначе вернуть false
@@ -1569,7 +1580,12 @@ function bind(e){
   const makeImg=async()=>present(await summaryImage(e,themeDark()),{out:"imgOut",box:"imgBox",share:"shareImg",save:"saveImg"},`itog-${safeFile(e.name)}.png`,e.name);
   const makeCmpImg=async()=>{const {o}=compareTarget(e);if(!o)return;
     present(await compareImage(e,o,themeDark()),{out:"cmpImgOut",box:"cmpImgBox",share:"cmpShareImg",save:"cmpSaveImg"},`sravnenie-${safeFile(e.name)}.png`,e.name+" vs "+o.name)};
-  if($("cmpImg"))$("cmpImg").onclick=()=>makeCmpImg();
+  if($("cmpShare"))$("cmpShare").onclick=()=>openSheet("Поделиться сравнением",[
+      {value:"img",label:"Картинкой",sub:`В теме приложения: ${themeDark()?"тёмная":"светлая"}`,icon:SH_ICO.img},
+      {value:"xls",label:"Файлом Excel",sub:"Файл .xlsx: вывод и таблица «Сейчас / Тогда»",icon:SH_ICO.xls}],null,async v=>{
+    if(v==="img"){makeCmpImg();return}
+    const {o}=compareTarget(e);if(!o)return;const fname=`sravnenie-${safeFile(e.name)}.xlsx`,blob=compareXlsx(e,o);
+    if(await shareFile(blob,fname,XLSX_TYPE,e.name+" vs "+o.name))return;const t=await saveFile(fname,blob,XLSX_TYPE,e.name);const m=$("cmpMsg");if(m&&t){m.textContent=t;m.hidden=false}},true);
 }
 // ---------- резервная копия ----------
 const evWord=n=>n+" "+(n%10===1&&n%100!==11?"мероприятие":n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?"мероприятия":"мероприятий");
