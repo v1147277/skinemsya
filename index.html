@@ -203,6 +203,13 @@ input[type=number]{-moz-appearance:textfield}
 .tag{white-space:nowrap;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--field);box-shadow:inset 0 0 0 1px var(--line);color:var(--muted)}
 .hint.ok{color:var(--get);font-weight:700;margin-top:10px}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
+.search-row{display:flex;align-items:center;gap:8px;margin-top:10px;padding:0 6px 0 12px;background:var(--field);border-radius:14px;box-shadow:inset 0 0 0 1.5px var(--line);color:var(--muted)}
+.search-row:focus-within{box-shadow:inset 0 0 0 1.5px var(--accent)}
+.search-row input{border:0;background:transparent;padding:12px 0;flex:1;min-width:0;box-shadow:none}
+.search-row input:focus{border:0;background:transparent}
+.search-row input::-webkit-search-cancel-button{display:none}
+.search-row .link{min-width:40px;min-height:40px;font-size:22px;padding:0}
+.q-pick{width:100%;margin-top:8px}
 /* длинные слова без пробелов (ссылки, номера) переносятся и не раздвигают экран */
 #app,#app *,.sheet,.sheet *,#toast{overflow-wrap:anywhere}
 .chip{max-width:100%}.chip-main{min-width:0}.chip-main>span{min-width:0}
@@ -561,13 +568,13 @@ function lastPayFor(name){const n=String(name).trim().toLowerCase();
 function newPerson(name,tpl){const o={id:uid(),name};const t=tpl&&tpl.people.find(x=>x.name.trim().toLowerCase()===name.trim().toLowerCase());
   if(t&&wOf(t)!==1)o.w=t.w;const pay=(t&&t.pay)||lastPayFor(name);if(pay)o.pay=pay;return o}
 // выбор конкретных мероприятий для фильтра «Показать»
-function openPickSheet(setF){
-  closeSheet();const sel=new Set((S.filter&&S.filter.ids)||[]);
+function openPickSheet(setF,pre){
+  closeSheet();const sel=new Set(pre&&pre.ids?pre.ids:(S.filter&&S.filter.ids)||[]);
   const list=S.events.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||""));
   const wrap=document.createElement("div");wrap.className="sheet-wrap";wrap.id="sheet";
   wrap.innerHTML=`<div class="sheet-bg" data-close></div><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pkTitle"><div class="grab" aria-hidden="true"></div>
     <h3 id="pkTitle">Какие мероприятия показать</h3>
-    ${list.length>6?'<input id="pkSearch" type="search" placeholder="Поиск по названию" style="margin-bottom:8px" autocomplete="off">':""}
+    <input id="pkSearch" type="search" placeholder="Поиск: название, участники, описание" style="margin-bottom:8px" autocomplete="off" maxlength="60" value="${esc(pre&&pre.q||"")}">
     <div class="sheet-list" id="pkList">${list.map(e=>`<button type="button" class="sheet-row${sel.has(e.id)?" on":""}" data-id="${esc(e.id)}" aria-pressed="${sel.has(e.id)}"><span class="pk-main"><span class="pk-label">${e.fav?'<span class="star">★</span> ':""}${esc(e.name)}</span><span class="pk-sub">${esc([e.date?periodRu(e):"",rubShort(settle(e).total)].filter(Boolean).join(" · "))}</span></span><span class="sh-check" aria-hidden="true"></span></button>`).join("")}
       <p class="empty" id="pkNone" hidden>Ничего не найдено.</p></div>
     <div class="del-actions"><button type="button" class="btn" id="pkShow"></button><button type="button" class="btn ghost" id="pkClear">Снять все отметки</button></div></div>`;
@@ -577,9 +584,10 @@ function openPickSheet(setF){
     if(r){const id=r.dataset.id;if(sel.has(id))sel.delete(id);else sel.add(id);r.classList.toggle("on",sel.has(id));r.setAttribute("aria-pressed",sel.has(id));upd();return}
     if(ev.target.closest("[data-close]"))closeSheet()});
   wrap.querySelector("#pkClear").onclick=()=>{sel.clear();wrap.querySelectorAll(".sheet-row.on").forEach(r=>{r.classList.remove("on");r.setAttribute("aria-pressed","false")});upd()};
-  btn.onclick=()=>{closeSheet();setF(sel.size?{mode:"pick",ids:[...sel]}:{mode:"all",ids:[]})};
-  const q=wrap.querySelector("#pkSearch");if(q)q.oninput=()=>{const t=q.value.trim().toLowerCase();let n=0;
-    wrap.querySelectorAll(".sheet-row").forEach(r=>{const hit=!t||r.querySelector(".pk-label").textContent.toLowerCase().includes(t);r.hidden=!hit;if(hit)n++});wrap.querySelector("#pkNone").hidden=n>0};
+  btn.onclick=()=>{closeSheet();setF(sel.size?{mode:"pick",ids:[...sel],q:""}:{mode:"all",ids:[],q:""})};
+  const q=wrap.querySelector("#pkSearch"),filt=()=>{let n=0;
+    wrap.querySelectorAll(".sheet-row").forEach(r=>{const e=S.events.find(x=>x.id===r.dataset.id);const hit=!!e&&matchQ(e,q.value);r.hidden=!hit;if(hit)n++});wrap.querySelector("#pkNone").hidden=n>0};
+  q.oninput=filt;filt();
 }
 // изменить название, даты и описание мероприятия
 function openEventSheet(e){
@@ -845,7 +853,11 @@ function helpView(){
     ${ex("Мероприятие <b>«Алтай, август»</b> само сравнится с <b>«Алтай, июль»</b>: в названиях есть общее слово. Если хотите сравнить с баней, выберите её в поле «Сравнить с».")}`)}
 
   ${sec("h-home","Главный экран, история и тема",`
-    <p><b>История</b> (кнопка вверху) прокручивает к списку мероприятий. Фильтр «Показать»: все, избранное, этот месяц, прошлый, этот год, свой период или <b>«Выбрать»</b>: отметьте нужные мероприятия в списке, есть поиск по названию.</p>
+    <p><b>История</b> (кнопка вверху) прокручивает к списку мероприятий. Фильтр «Показать»: все, избранное, этот месяц, прошлый, этот год, свой период или <b>«Выбрать»</b>: отметьте нужные мероприятия в списке.</p>
+    <p><b>Поиск</b> — поле под фильтром. Ищет по словам в названии, описании, отзывах, именах участников и в «За что» у расходов. Если написать несколько слов, найдутся мероприятия, где есть все они. Буквы «е» и «ё» не различаются. Поиск работает вместе с фильтром: например, «Этот год» + «баня». Под полем видно, сколько найдено и сколько потрачено, а <b>список и «Статистика» показывают только найденное</b>.</p>
+    <p>Кнопка <b>«Выбрать из найденных для статистики»</b> открывает список с уже отмеченными найденными мероприятиями: снимите лишние отметки и нажмите «Показать». Выбор сохранится в фильтре «Выбрать», а поиск очистится.</p>
+    ${ex("В поиске напишите «алтай». Найдутся «Алтай, июль» и «Алтай, август», под полем будет «найдено: 2 · потрачено 63&nbsp;000&nbsp;₽», а «Статистика» покажет категории и людей только по этим двум поездкам.")}
+    ${ex("Нужно всё, где был Коля и была баня: напишите «Коля баня».")}
     ${ex("Сколько ушло на все поездки на Алтай? «Выбрать» → в поиске «алтай» → отметьте «Алтай, июль» и «Алтай, август» → «Показать (2)». Под фильтром будет общая сумма, а в «Статистике» категории и люди только по ним.")}
     ${ex("Сколько потратили на поездки за лето? Выберите «Период», с <b>01.06</b> по <b>31.08</b>. Под фильтром будет «Найдено 4 из 12 · потрачено …».")}
     <p><b>Статистика</b> под фильтром: на что ушли деньги и кто сколько заплатил за выбранные мероприятия. Там же таблица Excel по этим мероприятиям.</p>
@@ -903,9 +915,11 @@ function homeView(){
   ${S.events.length?`<section class="card" id="historyBlock"><h2>Показать</h2>
     <div class="chips chips-scroll">${modes.map(([k,l])=>`<label class="pick"><input type="radio" name="fmode" value="${k}"${f.mode===k?" checked":""}><span>${l}</span></label>`).join("")}</div>
     ${f.mode==="range"?`<div class="dates" style="margin-top:10px"><label>с<input id="fFrom" type="date" value="${esc(f.from)}"></label><label>по<input id="fTo" type="date" value="${esc(f.to)}"></label></div>`:""}
+    <div class="search-row"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><input id="fQ" type="search" enterkeyhint="search" autocomplete="off" maxlength="60" placeholder="Поиск по словам: название, участники…" value="${esc(f.q||"")}" aria-label="Поиск мероприятий">${f.q?'<button type="button" class="link" id="fQClear" aria-label="Очистить поиск">×</button>':""}</div>
+    ${f.q&&shown.length?`<button type="button" class="btn ghost small q-pick" id="qPick">Выбрать из найденных для статистики (${shown.length})</button>`:""}
     ${f.mode==="pick"?`<div class="pick-sum"><span>${shown.length?shown.map(e=>"«"+esc(e.name)+"»").join(", "):"Мероприятия не выбраны"}</span><button type="button" class="link acc" id="pickEdit">${shown.length?"Изменить":"Выбрать"}</button></div>`:""}
-    <p class="hint" style="margin-top:10px">${f.mode==="pick"?(shown.length?`Выбрано: ${shown.length} · потрачено ${rubShort(sumAll)}`:"Нажмите «Выбрать» и отметьте нужные мероприятия."):f.mode==="fav"?(shown.length?`В избранном: ${shown.length} · потрачено ${rubShort(sumAll)}`:"В избранном пока пусто. Откройте мероприятие и нажмите звёздочку вверху."):f.mode==="all"?`Всего мероприятий: ${S.events.length}`:`Найдено ${shown.length} из ${S.events.length} · потрачено ${rubShort(sumAll)}`}</p></section>`:""}
-  ${list||(S.events.length?'<p class="empty">За этот период мероприятий нет.</p>':'<p class="empty">Пока пусто. Создайте первое мероприятие: поездку, встречу или совместную закупку.</p><button type="button" class="first-help" id="firstHelp">Впервые здесь? <b>Как пользоваться за 1 минуту →</b></button>')}
+    <p class="hint" style="margin-top:10px">${f.q?(shown.length?`По «${esc(f.q)}» найдено: ${shown.length} · потрачено ${rubShort(sumAll)}. Список и статистика ниже — только по найденным.`:`По «${esc(f.q)}» ничего не найдено${f.mode!=="all"?" в выбранном фильтре":""}.`):f.mode==="pick"?(shown.length?`Выбрано: ${shown.length} · потрачено ${rubShort(sumAll)}`:"Нажмите «Выбрать» и отметьте нужные мероприятия."):f.mode==="fav"?(shown.length?`В избранном: ${shown.length} · потрачено ${rubShort(sumAll)}`:"В избранном пока пусто. Откройте мероприятие и нажмите звёздочку вверху."):f.mode==="all"?`Всего мероприятий: ${S.events.length}`:`Найдено ${shown.length} из ${S.events.length} · потрачено ${rubShort(sumAll)}`}</p></section>`:""}
+  ${list||(S.events.length?(f.q?'':'<p class="empty">За этот период мероприятий нет.</p>'):'<p class="empty">Пока пусто. Создайте первое мероприятие: поездку, встречу или совместную закупку.</p><button type="button" class="first-help" id="firstHelp">Впервые здесь? <b>Как пользоваться за 1 минуту →</b></button>')}
   ${statsCard(shown)}
   <section class="card"><h2>Резервная копия</h2>
     ${offlineReady()?'<p class="hint ok" style="margin:0 0 8px">Приложение сохранено на телефоне и открывается без интернета.</p>':""}<p class="empty" style="margin-top:0">Данные хранятся только на этом устройстве. Сохраните копию в «Файлы» или отправьте себе в мессенджер, чтобы не потерять их.${S.lastBackup?` Последняя копия: ${new Date(S.lastBackup).toLocaleString("ru-RU",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})}.`:""}</p>
@@ -1015,7 +1029,12 @@ function filterRange(f){
   if(f.mode==="range")return [f.from||"",f.to||""];
   return null;
 }
-function filterEvents(list,f){
+// поиск по словам: название, описание, участники, «за что» в расходах; все слова должны найтись, ё = е
+const normS=t=>String(t||"").toLowerCase().replace(/ё/g,"е");
+const searchText=e=>normS([e.name,e.desc,e.liked,e.disliked,...e.people.map(p=>p.name),...e.expenses.map(x=>x.note)].join(" "));
+const matchQ=(e,q)=>{const w=normS(q).split(/[\s,.;:!?«»"'()]+/).filter(Boolean);if(!w.length)return true;const h=searchText(e);return w.every(x=>h.includes(x))};
+function filterEvents(list,f){return filterMode(list,f).filter(e=>!f.q||matchQ(e,f.q))}
+function filterMode(list,f){
   if(f.mode==="fav")return list.filter(e=>e.fav);
   if(f.mode==="pick"){const ids=new Set(f.ids||[]);return list.filter(e=>ids.has(e.id))}
   const r=filterRange(f);if(!r)return list.slice();
@@ -1511,6 +1530,9 @@ function bind(e){
       if(await shareFile(blob,fname,XLSX_TYPE,"Скинемся: расходы"))return;const t=await saveFile(fname,blob,XLSX_TYPE,"Скинемся: расходы");if(t)toast(t)};
     document.querySelectorAll('input[name=fmode]').forEach(r=>r.onchange=()=>{setF({mode:r.value});if(r.value==="pick"&&!filterEvents(S.events,S.filter).length)openPickSheet(setF)});
     if($("pickEdit"))$("pickEdit").onclick=()=>openPickSheet(setF);
+    if($("fQ")){let tq;$("fQ").oninput=()=>{clearTimeout(tq);tq=setTimeout(()=>{const v=$("fQ").value.slice(0,60),pos=$("fQ").selectionStart;setF({q:v});const n=document.getElementById("fQ");if(n){n.focus({preventScroll:true});try{n.setSelectionRange(pos,pos)}catch(err){}}},300)}}
+    if($("fQClear"))$("fQClear").onclick=()=>{setF({q:""});const n=document.getElementById("fQ");if(n)n.focus({preventScroll:true})};
+    if($("qPick"))$("qPick").onclick=()=>openPickSheet(setF,{q:S.filter.q,ids:filterEvents(S.events,S.filter).map(e=>e.id)});
     if($("fFrom")){$("fFrom").onchange=()=>setF({from:$("fFrom").value});$("fTo").onchange=()=>setF({to:$("fTo").value})}
     $("themeBtn").onclick=()=>openSheet("Тема оформления",[
       {value:"auto",label:"Как в телефоне",sub:"Меняется вместе с настройкой системы",icon:THEME_ICONS.auto},
@@ -1723,7 +1745,7 @@ function sanitizeState(st){
       mood:moodKeys.has(e.mood)?e.mood:"",fav:!!e.fav,imported:!!e.imported,round:e.round===10||e.round===100?e.round:0,compareWith:okId(e.compareWith)||e.compareWith==="none"?e.compareWith:""});
   });
   const f=st&&st.filter&&typeof st.filter==="object"?st.filter:{};
-  return {events,filter:{mode:["all","fav","month","prev","year","range","pick"].includes(f.mode)?f.mode:"all",from:date(f.from),to:date(f.to),ids:Array.isArray(f.ids)?f.ids.filter(okId).slice(0,500):[]},
+  return {events,filter:{mode:["all","fav","month","prev","year","range","pick"].includes(f.mode)?f.mode:"all",from:date(f.from),to:date(f.to),q:typeof f.q==="string"?f.q.slice(0,60):"",ids:Array.isArray(f.ids)?f.ids.filter(okId).slice(0,500):[]},
     lastBackup:typeof(st&&st.lastBackup)==="string"?st.lastBackup.slice(0,40):undefined,
     lastChange:Number(st&&st.lastChange)||0,backupSnooze:Number(st&&st.backupSnooze)||0};
 }
