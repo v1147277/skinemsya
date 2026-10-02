@@ -203,6 +203,8 @@ input[type=number]{-moz-appearance:textfield}
 .tag{white-space:nowrap;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--field);box-shadow:inset 0 0 0 1px var(--line);color:var(--muted)}
 .hint.ok{color:var(--get);font-weight:700;margin-top:10px}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
+.fmode-btn svg{flex:none;color:var(--accent)}
+.fmode-btn .pk-label{font-weight:700}
 .search-row{display:flex;align-items:center;gap:8px;margin-top:10px;padding:0 6px 0 12px;background:var(--field);border-radius:14px;box-shadow:inset 0 0 0 1.5px var(--line);color:var(--muted)}
 .search-row:focus-within{box-shadow:inset 0 0 0 1.5px var(--accent)}
 .search-row input{border:0;background:transparent;padding:12px 0;flex:1;min-width:0;box-shadow:none}
@@ -853,7 +855,7 @@ function helpView(){
     ${ex("Мероприятие <b>«Алтай, август»</b> само сравнится с <b>«Алтай, июль»</b>: в названиях есть общее слово. Если хотите сравнить с баней, выберите её в поле «Сравнить с».")}`)}
 
   ${sec("h-home","Главный экран, история и тема",`
-    <p><b>История</b> (кнопка вверху) прокручивает к списку мероприятий. Фильтр «Показать»: все, избранное, этот месяц, прошлый, этот год, свой период или <b>«Выбрать»</b>: отметьте нужные мероприятия в списке.</p>
+    <p><b>История</b> (кнопка вверху) прокручивает к списку мероприятий. <b>Фильтр «Показать»</b> — кнопка над списком, на ней видно, что показано сейчас («Все мероприятия»). Нажмите на неё, откроется список: все, избранное, этот месяц, прошлый месяц, этот год, свой период или <b>выбранные мероприятия</b> (отметьте нужные). У каждого варианта видно, сколько в нём мероприятий.</p>
     <p><b>Поиск</b> — поле под фильтром. Ищет по словам в названии, описании, отзывах, именах участников и в «За что» у расходов. Если написать несколько слов, найдутся мероприятия, где есть все они. Буквы «е» и «ё» не различаются. Поиск работает вместе с фильтром: например, «Этот год» + «баня». Под полем видно, сколько найдено и сколько потрачено, а <b>список и «Статистика» показывают только найденное</b>.</p>
     <p>Кнопка <b>«Выбрать из найденных для статистики»</b> открывает список с уже отмеченными найденными мероприятиями: снимите лишние отметки и нажмите «Показать». Выбор сохранится в фильтре «Выбрать», а поиск очистится.</p>
     ${ex("В поиске напишите «алтай». Найдутся «Алтай, июль» и «Алтай, август», под полем будет «найдено: 2 · потрачено 63&nbsp;000&nbsp;₽», а «Статистика» покажет категории и людей только по этим двум поездкам.")}
@@ -899,7 +901,7 @@ function homeView(){
   const sumAll=shown.reduce((t,e)=>t+settle(e).total,0);
   const list=shown.map(e=>{const s=settle(e);const left=s.plan.length;const per=periodRu(e);
     return `<div class="ev-wrap"><button class="event" data-open="${esc(e.id)}"><span class="main"><b>${e.fav?'<span class="fav-mark" aria-label="Избранное">★</span> ':""}${esc(e.name)}${moodOf(e)?" "+moodIcon(e.mood):""}</b><small>${per?esc(per)+" · ":""}${rubShort(s.total)}</small>${e.desc?`<small class="desc-line">${esc(e.desc.split("\n")[0])}</small>`:""}${e.people.length?`<span class="stack">${e.people.slice(0,5).map(p=>ava(p.name)).join("")}${e.people.length>5?`<span class="ava more">+${e.people.length-5}</span>`:""}</span>`:""}</span>${left?`<span class="pill warn">${left} перев.</span>`:`<span class="pill">в расчёте</span>`}</button><button type="button" class="ev-del" data-del-ev="${esc(e.id)}" aria-label="Удалить «${esc(e.name)}»" title="Удалить">${TRASH_SVG}</button></div>`}).join("");
-  const modes=[["all","Все"],["fav","★ Избранное"],["month","Этот месяц"],["prev","Прошлый месяц"],["year","Этот год"],["range","Период"],["pick","Выбрать"]];
+
   const today=localISO(new Date());const tplE=S.events.find(x=>x.id===view.tpl)||null;
   return `<header class="brand"><div class="brand-row"><div class="logo" role="img" aria-label="Скинемся"><span class="coins"><i></i><i></i><i>₽</i></span><span class="word">скинем<em>ся</em></span></div><button type="button" class="icon-btn help-btn" id="helpBtn" aria-label="Как пользоваться">?</button><button type="button" class="icon-btn theme-btn" id="themeBtn" aria-label="Тема оформления">${THEME_ICONS[getTheme()]}</button></div><div class="tag-row"><p class="tagline">Делим общие траты без неловких разговоров</p>${S.events.length?`<button type="button" class="hist-btn" id="histBtn"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 7v5l3.2 2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>История</button>`:""}</div></header>
   ${backupNag()}
@@ -912,8 +914,8 @@ function homeView(){
     <input id="evPlan" type="text" inputmode="decimal" autocomplete="off" class="amt" placeholder="Бюджет, ₽ (необязательно)" value="${tplE&&tplE.plan?esc(tplE.plan):""}">
     <details class="plan-edit desc-add"><summary>Добавить описание</summary><textarea id="evDesc" class="desc-input" rows="3" maxlength="2000" placeholder="Место, маршрут, что взять с собой, договорённости"></textarea></details>
     <div class="row-actions"><button class="btn" style="flex:1">Погнали</button>${S.events.length?'<button type="button" class="link party-close" id="newClose">Свернуть</button>':""}</div></form></section>`}
-  ${S.events.length?`<section class="card" id="historyBlock"><h2>Показать</h2>
-    <div class="chips chips-scroll">${modes.map(([k,l])=>`<label class="pick"><input type="radio" name="fmode" value="${k}"${f.mode===k?" checked":""}><span>${l}</span></label>`).join("")}</div>
+  ${S.events.length?`<section class="card" id="historyBlock">
+    <button type="button" class="picker fmode-btn" id="fModeBtn" aria-haspopup="dialog"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg><span class="pk-main"><span class="pk-sub">Показать</span><span class="pk-label">${(FMODES.find(m=>m[0]===f.mode)||FMODES[0])[2]}</span></span><span class="pk-chev" aria-hidden="true"></span></button>
     ${f.mode==="range"?`<div class="dates" style="margin-top:10px"><label>с<input id="fFrom" type="date" value="${esc(f.from)}"></label><label>по<input id="fTo" type="date" value="${esc(f.to)}"></label></div>`:""}
     <div class="search-row"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><input id="fQ" type="search" enterkeyhint="search" autocomplete="off" maxlength="60" placeholder="Поиск по словам: название, участники…" value="${esc(f.q||"")}" aria-label="Поиск мероприятий">${f.q?'<button type="button" class="link" id="fQClear" aria-label="Очистить поиск">×</button>':""}</div>
     ${f.q&&shown.length?`<button type="button" class="btn ghost small q-pick" id="qPick">Выбрать из найденных для статистики (${shown.length})</button>`:""}
@@ -1029,6 +1031,9 @@ function filterRange(f){
   if(f.mode==="range")return [f.from||"",f.to||""];
   return null;
 }
+// варианты фильтра «Показать»: ключ, короткое и полное название, пояснение
+const FMODES=[["all","Все","Все мероприятия",""],["fav","★ Избранное","★ Избранное","Отмеченные звёздочкой"],["month","Этот месяц","Этот месяц",""],["prev","Прошлый месяц","Прошлый месяц",""],
+  ["year","Этот год","Этот год",""],["range","Период","Свой период","Укажете даты «с» и «по»"],["pick","Выбрать","Выбранные мероприятия","Отметить нужные в списке"]];
 // поиск по словам: название, описание, участники, «за что» в расходах; все слова должны найтись, ё = е
 const normS=t=>String(t||"").toLowerCase().replace(/ё/g,"е");
 const searchText=e=>normS([e.name,e.desc,e.liked,e.disliked,...e.people.map(p=>p.name),...e.expenses.map(x=>x.note)].join(" "));
@@ -1528,7 +1533,9 @@ function bind(e){
     if($("statsBlock"))$("statsBlock").addEventListener("toggle",()=>{view.statsOpen=$("statsBlock").open});
     if($("allCsv"))$("allCsv").onclick=async()=>{const list=filterEvents(S.events,S.filter||{mode:"all"}),fname=`skinemsya-vse-${localISO(new Date())}.xlsx`,blob=allXlsx(list);
       if(await shareFile(blob,fname,XLSX_TYPE,"Скинемся: расходы"))return;const t=await saveFile(fname,blob,XLSX_TYPE,"Скинемся: расходы");if(t)toast(t)};
-    document.querySelectorAll('input[name=fmode]').forEach(r=>r.onchange=()=>{setF({mode:r.value});if(r.value==="pick"&&!filterEvents(S.events,S.filter).length)openPickSheet(setF)});
+    const pickMode=v=>{if(v==="pick"){openPickSheet(setF);return}setF({mode:v})};
+    if($("fModeBtn"))$("fModeBtn").onclick=()=>openSheet("Показать",FMODES.map(([k,,l,sub])=>{const n=k==="pick"||k==="range"?null:filterMode(S.events,Object.assign({},S.filter,{mode:k})).length;
+      return {value:k,label:l,sub:[sub,n!=null?`${n} ${n%10===1&&n%100!==11?"мероприятие":n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?"мероприятия":"мероприятий"}`:""].filter(Boolean).join(" · ")}}),(S.filter||{}).mode||"all",pickMode);
     if($("pickEdit"))$("pickEdit").onclick=()=>openPickSheet(setF);
     if($("fQ")){let tq;$("fQ").oninput=()=>{clearTimeout(tq);tq=setTimeout(()=>{const v=$("fQ").value.slice(0,60),pos=$("fQ").selectionStart;setF({q:v});const n=document.getElementById("fQ");if(n){n.focus({preventScroll:true});try{n.setSelectionRange(pos,pos)}catch(err){}}},300)}}
     if($("fQClear"))$("fQClear").onclick=()=>{setF({q:""});const n=document.getElementById("fQ");if(n)n.focus({preventScroll:true})};
