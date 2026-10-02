@@ -203,6 +203,9 @@ input[type=number]{-moz-appearance:textfield}
 .tag{white-space:nowrap;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--field);box-shadow:inset 0 0 0 1px var(--line);color:var(--muted)}
 .hint.ok{color:var(--get);font-weight:700;margin-top:10px}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
+.title-edit{border:0;background:none;padding:0;margin:0;color:inherit;font:inherit;letter-spacing:inherit;text-align:left;cursor:pointer;width:100%;overflow-wrap:anywhere}
+.title-edit .per{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.edit-hint{display:inline-flex;align-items:center;gap:3px;color:var(--accent);font-weight:700;font-size:13px}
 .sheet-act .sh-check{display:none}
 .sheet-act .sh-ico{background:var(--soft);color:var(--accent)}
 .share-main{width:100%;display:flex;align-items:center;justify-content:center;gap:10px}
@@ -534,6 +537,27 @@ function openPickSheet(setF){
   const q=wrap.querySelector("#pkSearch");if(q)q.oninput=()=>{const t=q.value.trim().toLowerCase();let n=0;
     wrap.querySelectorAll(".sheet-row").forEach(r=>{const hit=!t||r.querySelector(".pk-label").textContent.toLowerCase().includes(t);r.hidden=!hit;if(hit)n++});wrap.querySelector("#pkNone").hidden=n>0};
 }
+// изменить название, даты и описание мероприятия
+function openEventSheet(e){
+  closeSheet();
+  const wrap=document.createElement("div");wrap.className="sheet-wrap";wrap.id="sheet";
+  wrap.innerHTML=`<div class="sheet-bg" data-close></div><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="esTitle"><div class="grab" aria-hidden="true"></div>
+    <h3 id="esTitle">Мероприятие</h3><div class="sheet-list form" style="padding:0 2px 10px">
+    <label class="lbl">Название<input id="esName" maxlength="80" value="${esc(e.name)}"></label>
+    <p class="err" id="esErr" hidden>Название не может быть пустым.</p>
+    <div class="dates"><label>с<input id="esFrom" type="date" value="${esc(e.date)}"></label><label>по<input id="esTo" type="date" value="${esc(e.dateTo||"")}"></label></div>
+    <p class="hint">«По» нужно, если мероприятие длилось несколько дней. Если перепутать даты местами, приложение само их поменяет.</p>
+    <label class="lbl">Описание<textarea id="esDesc" class="desc-input" rows="3" maxlength="2000" placeholder="Место, маршрут, что взять с собой">${esc(e.desc||"")}</textarea></label>
+    </div><div class="del-actions"><button type="button" class="btn" id="esSave">Сохранить</button><button type="button" class="btn ghost" data-close>Отмена</button></div></div>`;
+  document.body.appendChild(wrap);sheetOpened();requestAnimationFrame(()=>wrap.classList.add("open"));
+  wrap.addEventListener("click",ev=>{if(ev.target.closest("[data-close]"))closeSheet()});
+  const q=id=>wrap.querySelector("#"+id);
+  q("esName").addEventListener("input",()=>{q("esName").classList.remove("invalid");q("esErr").hidden=true});
+  q("esSave").onclick=()=>{const n=q("esName").value.trim().slice(0,80);if(!n){q("esName").classList.add("invalid");q("esErr").hidden=false;q("esName").focus();return}
+    let d1=q("esFrom").value,d2=q("esTo").value;if(d1&&d2&&d2<d1)[d1,d2]=[d2,d1];if(!d1&&d2){d1=d2;d2=""}
+    e.name=n;e.date=d1;e.dateTo=d2&&d2!==d1?d2:"";e.desc=q("esDesc").value.trim().slice(0,2000);
+    closeSheet();save();render();toast("Сохранено")};
+}
 // карточка участника: имя, доля, реквизиты
 function openPersonSheet(e,p){
   closeSheet();const w0=wOf(p);
@@ -694,7 +718,7 @@ function helpView(){
     <ol class="steps">
       <li><b>Создайте мероприятие.</b> На главном экране в блоке «Новая тусовка» напишите название, даты и участников через запятую. Нажмите «Погнали».
         ${ex("Название: <b>Баня, суббота</b>. Участники: <b>Вася, Петя, Коля</b>.")}</li>
-      <li><b>Вносите расходы.</b> На вкладке «Расходы» выберите, кто платил, введите сумму и нажмите «Добавить». По умолчанию сумма делится на всех.
+      <li><b>Вносите расходы.</b> На вкладке «Расходы» сверху список уже внесённого, под ним форма «Добавить расход». Выберите, кто платил, введите сумму и нажмите «Добавить». По умолчанию сумма делится на всех. Пока расходов нет, кнопка «Добавьте первый расход» сама прокрутит к форме.
         ${ex("Вася заплатил за баню <b>3&nbsp;000&nbsp;₽</b>. На троих это по 1&nbsp;000&nbsp;₽. Значит, Петя и Коля должны Васе по 1&nbsp;000&nbsp;₽.")}</li>
       <li><b>Откройте «Итог».</b> Жёлтая вкладка справа. Там видно, кто кому сколько переводит.
         ${ex("В «Осталось перевести» будет две строки: <b>Петя → Вася 1&nbsp;000&nbsp;₽</b> и <b>Коля → Вася 1&nbsp;000&nbsp;₽</b>.")}</li>
@@ -709,7 +733,8 @@ function helpView(){
     <p><b>Бюджет</b> необязателен. Если указать, в «Итоге» будет видно, уложились или нет. Бюджет можно задать и по категориям: на вкладке «Итог» в блоке «План и факт» нажмите «Задать план» и заполните нужные строки, остальные оставьте пустыми.</p>
     ${ex("Бюджет <b>60&nbsp;000&nbsp;₽</b>, из них на продукты <b>20&nbsp;000&nbsp;₽</b>. На продукты потратили 14&nbsp;500&nbsp;₽. В таблице будет строка «Продукты · 20&nbsp;000 · 14&nbsp;500 · −5&nbsp;500&nbsp;₽, 27,5%», зелёным: сэкономили.")}
     <p><b>Описание</b>: ссылка «Добавить описание». Сюда удобно записать место, маршрут, что взять с собой.</p>
-    <p><b>Изменить</b> название, даты или описание можно на вкладке «Люди», в блоке «Мероприятие».</p>
+    <p><b>Изменить</b> название, даты или описание: нажмите на название вверху экрана мероприятия (под ним надпись «изменить»). То же есть на вкладке «Люди», в блоке «Мероприятие».</p>
+    ${ex("Поездку перенесли на день: нажмите на «Алтай, август», поменяйте «по» с 15.08 на 16.08 и нажмите «Сохранить». Даты обновятся в списке, в итоге и в сравнении.")}
     <p><b>Избранное.</b> Звёздочка в правом верхнем углу экрана мероприятия. Потом такие мероприятия легко найти фильтром «★ Избранное».</p>`)}
 
   ${sec("h-exp","Расходы: категории и «на кого делим»",`
@@ -904,7 +929,7 @@ function eventView(e){
     ${moodCard(e)}`;
   }
   const tabs=[["exp","Расходы"],["mine","Мои"],["ppl","Люди"],["tr","Переводы"],["sum","Итог"]].map(([k,l])=>`<button role="tab" aria-selected="${t===k}" data-tab="${k}"${k==="sum"?' class="tab-sum"':k==="mine"?' class="tab-mine"':""}>${l}</button>`).join("");
-  return `<header class="top"><button class="icon-btn" id="back" aria-label="Назад">←</button><h1>${esc(e.name)}${moodOf(e)?" "+moodIcon(e.mood):""}${e.date?`<small class="per">${esc(periodRu(e))}</small>`:""}</h1><button type="button" class="icon-btn del-btn" id="delEvTop" aria-label="Удалить мероприятие" title="Удалить мероприятие">${TRASH_SVG}</button><button type="button" class="icon-btn fav-btn${e.fav?" on":""}" id="favBtn" aria-pressed="${!!e.fav}" aria-label="${e.fav?"Убрать из избранного":"Добавить в избранное"}">${e.fav?'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" fill="currentColor"/></svg>':'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>'}</button></header>
+  return `<header class="top"><button class="icon-btn" id="back" aria-label="Назад">←</button><h1><button type="button" class="title-edit" id="evEditTop" aria-label="Изменить название и даты">${esc(e.name)}${moodOf(e)?" "+moodIcon(e.mood):""}<small class="per">${e.date?esc(periodRu(e)):"Даты не указаны"}<span class="edit-hint"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>изменить</span></small></button></h1><button type="button" class="icon-btn del-btn" id="delEvTop" aria-label="Удалить мероприятие" title="Удалить мероприятие">${TRASH_SVG}</button><button type="button" class="icon-btn fav-btn${e.fav?" on":""}" id="favBtn" aria-pressed="${!!e.fav}" aria-label="${e.fav?"Убрать из избранного":"Добавить в избранное"}">${e.fav?'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" fill="currentColor"/></svg>':'<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>'}</button></header>
   <section class="card stats"><div>Потрачено<b>${rubShort(s.total)}</b></div><div>${(perPerson(e,s)||{label:"На 1 чел."}).label}<b>${(perPerson(e,s)||{text:"—"}).text}</b></div><div>Людей<b>${e.people.length}</b></div><div>${s.plan.length?"Переводов":"Статус"}<b>${s.plan.length?s.plan.length:"ок"}</b></div></section>
   ${e.desc?`<section class="card desc"><p class="desc-text${e.desc.length>160||e.desc.split("\n").length>3?" clamp":""}" id="descText">${esc(e.desc)}</p>${e.desc.length>160||e.desc.split("\n").length>3?'<button class="link" id="descMore">Показать полностью</button>':""}</section>`:""}
   <nav class="tabs" role="tablist">${tabs}</nav>${body}`;
@@ -1545,6 +1570,7 @@ function bind(e){
   on("[data-more-btn]",ev=>{const b=ev.currentTarget,box=document.querySelector(`[data-more="${b.dataset.moreBtn}"]`);const open=box.hidden;
     box.hidden=!open;b.textContent=open?"Свернуть":"Ещё +"+box.children.length;b.setAttribute("aria-expanded",open);view.catsOpen=open});
   if($("favBtn"))$("favBtn").onclick=()=>{e.fav=!e.fav;commit()};
+  if($("evEditTop"))$("evEditTop").onclick=()=>openEventSheet(e);
   [["likedInput","liked"],["dislikedInput","disliked"]].forEach(([id,key])=>{const el=$(id);if(!el)return;let t;el.addEventListener("input",ev=>{e[key]=ev.target.value.trim();clearTimeout(t);t=setTimeout(()=>{save();
     const m=$("likedSaved");if(m){m.hidden=false;setTimeout(()=>{if(m)m.hidden=true},1500)}const pv=$("textPreview");if(pv)pv.textContent=summaryText(e)},400)})});
   document.querySelectorAll("details.catrow").forEach(d=>d.addEventListener("toggle",()=>{const k=d.dataset.cat,set=new Set(view.catOpen||[]);if(d.open)set.add(k);else set.delete(k);view.catOpen=[...set]}));
