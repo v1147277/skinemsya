@@ -203,6 +203,14 @@ input[type=number]{-moz-appearance:textfield}
 .tag{white-space:nowrap;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--field);box-shadow:inset 0 0 0 1px var(--line);color:var(--muted)}
 .hint.ok{color:var(--get);font-weight:700;margin-top:10px}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
+.sheet-act .sh-check{display:none}
+.sheet-act .sh-ico{background:var(--soft);color:var(--accent)}
+.share-main{width:100%;display:flex;align-items:center;justify-content:center;gap:10px}
+.cmp-verdict{display:grid;gap:4px;margin:12px 0 4px;padding:12px 14px;border-radius:14px;background:var(--field);box-shadow:inset 0 0 0 1px var(--line);font-size:14px;line-height:1.4}
+.cmp-verdict b{font-size:16px;font-weight:800}
+.cmp-verdict.good{background:var(--get-soft);box-shadow:none}.cmp-verdict.good b{color:var(--get)}
+.cmp-verdict.bad{background:var(--owe-soft);box-shadow:none}.cmp-verdict.bad b{color:var(--owe)}
+.cmp-verdict span{color:var(--ink);opacity:.85}
 .pick-sum{display:flex;align-items:baseline;gap:10px;margin-top:10px;font-size:14px;font-weight:600}
 .pick-sum span{flex:1;min-width:0;overflow-wrap:anywhere}
 .pick-sum .link{flex:none}
@@ -487,9 +495,9 @@ function pickerField(id,title,options,sel,placeholder){
   return `<input type="hidden" id="${id}" value="${esc(sel||"")}"><button type="button" class="picker" data-picker="${id}" aria-haspopup="dialog" aria-label="${esc(title)}">${face}<span class="pk-chev" aria-hidden="true"></span></button>`;
 }
 const peopleOpts=e=>e.people.map(p=>({value:p.id,label:p.name,ava:true}));
-function openSheet(title,options,sel,onPick){
+function openSheet(title,options,sel,onPick,action){
   closeSheet();
-  const wrap=document.createElement("div");wrap.className="sheet-wrap";wrap.id="sheet";
+  const wrap=document.createElement("div");wrap.className="sheet-wrap"+(action?" sheet-act":"");wrap.id="sheet";
   wrap.innerHTML=`<div class="sheet-bg" data-close></div><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="grab" aria-hidden="true"></div><h3>${esc(title)}</h3>
     <div class="sheet-list">${options.map((o,i)=>`<button type="button" class="sheet-row${o.value===sel?" on":""}" data-i="${i}">${o.icon?`<span class="sh-ico">${o.icon}</span>`:o.ava?ava(o.label):""}<span class="pk-main"><span class="pk-label">${esc(o.label)}${o.star?' <span class="star">★</span>':""}</span>${o.sub?`<span class="pk-sub">${esc(o.sub)}</span>`:""}</span><span class="sh-check" aria-hidden="true"></span></button>`).join("")}</div>
     <button type="button" class="btn ghost sheet-close" data-close>Закрыть</button></div>`;
@@ -749,20 +757,21 @@ function helpView(){
       <li><b>Сбор денег.</b> Сколько уже перевели и сколько осталось, «рассчитались 3 из 5».</li>
       <li><b>Осталось перевести.</b> Кто кому и сколько. Перевели? Жмите «Оплачено». <b>«Напомнить»</b> готовит сообщение должнику с суммой и реквизитами, <b>«Реквизиты»</b> копирует номер получателя.</li>
       <li><b>Округление.</b> Над списком переводов: «Точно», «До 10 ₽» или «До 100 ₽», чтобы не переводить копейки.</li>
-      <li><b>Отправить в чат.</b> Текст или картинка, светлая или тёмная. <b>«Ссылка на мероприятие»</b> отправляет всё мероприятие друзьям, они добавят его к себе одним нажатием. <b>«Таблица для Excel»</b> сохраняет расходы, балансы и переводы файлом.</li>
-      <li><b>Сравнить с прошлым.</b> Похожее мероприятие подставляется само. Синим сейчас, серым тогда. Есть картинка для чата. Нажмите на поле с названием, чтобы выбрать другое мероприятие или «Не сравнивать».</li>
+      <li><b>Отправить в чат.</b> Кнопка «Поделиться» открывает меню: <b>текстом</b>, <b>картинкой</b> (в теме приложения: светлая или тёмная), <b>ссылкой</b> (друзья добавят мероприятие к себе одним нажатием) или <b>таблицей Excel</b> (файл .xlsx: итог, расходы, переводы). Текст итога можно посмотреть под кнопкой.</li>
+      <li><b>Сравнить с прошлым.</b> Похожее мероприятие подставляется само. Над таблицей вывод: потратили больше или меньше, на сколько, сколько на человека и что изменилось сильнее всего. Синим сейчас, серым тогда. «Поделиться картинкой» отправит сравнение в теме приложения. Нажмите на поле с названием, чтобы выбрать другое мероприятие или «Не сравнивать».</li>
       <li><b>Как прошло?</b> Смайлик и отзывы «Что понравилось» и «Что не понравилось». Заполните до отправки итога в чат, чтобы они попали в картинку.</li>
     </ul>
     ${ex("Бюджет <b>20&nbsp;000&nbsp;₽</b>, потратили <b>18&nbsp;500&nbsp;₽</b>. В «Плане и факте» будет: «Сэкономили 1&nbsp;500&nbsp;₽ · 7,5%».")}
     ${ex("Баня за 3&nbsp;000&nbsp;₽ на троих, платил Вася. Баланс: Вася <b>+2&nbsp;000&nbsp;₽</b> (ждёт), Петя и Коля по <b>−1&nbsp;000&nbsp;₽</b> (должен). Петя перевёл: он «рассчитался ✓», в «Сборе денег» «рассчитались 1 из 3». Вася станет «рассчитался», когда переведёт и Коля.")}
     ${ex("Коля должен Васе 1&nbsp;666,67&nbsp;₽. С округлением «До 10 ₽» в переводах будет <b>1&nbsp;670&nbsp;₽</b>, а после «Оплачено» оба будут «рассчитался ✓».")}
+    ${ex("Сейчас 3 человека потратили 36&nbsp;000&nbsp;₽, тогда двое потратили 27&nbsp;000&nbsp;₽. Вывод: «Вы потратили больше: на 9&nbsp;000&nbsp;₽ (+33,3%). На человека — меньше на 1&nbsp;500&nbsp;₽. Общая сумма выросла, потому что людей стало больше».")}
     ${ex("Мероприятие <b>«Алтай, август»</b> само сравнится с <b>«Алтай, июль»</b>: в названиях есть общее слово. Если хотите сравнить с баней, выберите её в поле «Сравнить с».")}`)}
 
   ${sec("h-home","Главный экран, история и тема",`
     <p><b>История</b> (кнопка вверху) прокручивает к списку мероприятий. Фильтр «Показать»: все, избранное, этот месяц, прошлый, этот год, свой период или <b>«Выбрать»</b>: отметьте нужные мероприятия в списке, есть поиск по названию.</p>
     ${ex("Сколько ушло на все поездки на Алтай? «Выбрать» → в поиске «алтай» → отметьте «Алтай, июль» и «Алтай, август» → «Показать (2)». Под фильтром будет общая сумма, а в «Статистике» категории и люди только по ним.")}
     ${ex("Сколько потратили на поездки за лето? Выберите «Период», с <b>01.06</b> по <b>31.08</b>. Под фильтром будет «Найдено 4 из 12 · потрачено …».")}
-    <p><b>Статистика</b> под фильтром: на что ушли деньги и кто сколько заплатил за выбранные мероприятия. Там же таблица этих расходов для Excel.</p>
+    <p><b>Статистика</b> под фильтром: на что ушли деньги и кто сколько заплатил за выбранные мероприятия. Там же таблица Excel по этим мероприятиям.</p>
     <p><b>По образцу.</b> В «Новой тусовке» нажмите «+ Участники из прошлого мероприятия». Подставятся люди, их доли и реквизиты. То же делает кнопка «Новое мероприятие с этими участниками» на вкладке «Люди».</p>
     ${ex("Каждую субботу баня одной компанией: выберите прошлую «Баню», поменяйте дату и нажмите «Погнали».")}
     <p>Закончившееся мероприятие открывается сразу на «Итоге», текущее и будущее на «Расходах».</p>
@@ -885,13 +894,11 @@ function eventView(e){
       ${s.plan.length?s.plan.map((p,i)=>{const to=e.people.find(x=>x.id===p.to)||{};return `<div class="tr-row"><div class="item">${ava(nameOf(e,p.from))}<div class="main">${esc(nameOf(e,p.from))}<small><span class="arrow">→</span> ${esc(nameOf(e,p.to))}${to.pay?` · <span class="pay-line">${esc(to.pay)}</span>`:""}</small></div><span class="sum">${rub(p.a)}</span></div>
         <div class="row-actions tr-acts"><button type="button" class="btn ghost small" data-remind="${i}">Напомнить</button>${to.pay?`<button type="button" class="btn ghost small" data-copy-pay="${esc(p.to)}">Реквизиты</button>`:""}<button type="button" class="btn small" data-paid="${i}">Оплачено</button></div></div>`}).join("")
         +(s.plan.some(p=>!(e.people.find(x=>x.id===p.to)||{}).pay)?'<p class="hint" style="margin-top:8px">Реквизиты получателя можно указать на вкладке «Люди»: нажмите на имя.</p>':""):'<p class="empty">Все в расчёте. Можно планировать следующую поездку.</p>'}</section>
-    <section class="card"><h2>Отправить в чат</h2>${!e.mood||!e.liked&&!e.disliked?`<button type="button" class="nudge" id="toMood">Оценка и отзывы ниже, в «Как прошло?». Заполните их до отправки, чтобы они попали в итог ↓</button>`:""}
-      <div class="row-actions"><button class="btn" id="copy">Скопировать текст</button><button class="btn ghost" id="makeImg">Светлая картинка</button><button class="btn ghost" id="makeImgDark">Тёмная картинка</button><span class="empty" id="copied" hidden>Скопировано</span></div>
-      <div class="row-actions" style="margin-top:8px"><button class="btn ghost" id="shareLink">Ссылка на мероприятие</button><button class="btn ghost" id="csvBtn">Таблица для Excel</button></div>
+    <section class="card" id="shareCard"><h2>Отправить в чат</h2>${!e.mood||!e.liked&&!e.disliked?`<button type="button" class="nudge" id="toMood">Оценка и отзывы ниже, в «Как прошло?». Заполните их до отправки, чтобы они попали в итог ↓</button>`:""}
+      <button type="button" class="btn share-main" id="shareBtn"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 15V3M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Поделиться</button>
       <p class="hint" id="linkMsg" hidden style="margin-top:8px"></p>
-      <pre class="preview" id="textPreview">${esc(summaryText(e))}</pre>
-      <textarea id="shareText" hidden readonly></textarea>
-      <div id="imgBox" hidden><img id="imgOut" alt="Итог расчёта картинкой"><div class="row-actions"><button class="btn" id="shareImg" hidden>Отправить картинку</button><button class="btn ghost" id="saveImg" hidden>Сохранить картинку</button></div><p class="empty">На телефоне можно нажать на картинку и удерживать, затем выбрать «Сохранить» или «Поделиться».</p></div>
+      <details class="plan-edit"><summary>Посмотреть текст итога</summary><pre class="preview" id="textPreview">${esc(summaryText(e))}</pre></details>
+      <div id="imgBox" class="imgbox" hidden><img id="imgOut" alt="Итог расчёта картинкой"><div class="row-actions"><button class="btn" id="shareImg" hidden>Отправить картинку</button><button class="btn ghost" id="saveImg">Сохранить картинку</button></div><p class="empty">На телефоне можно нажать на картинку и удерживать, затем выбрать «Сохранить» или «Поделиться».</p></div>
     </section>
     ${compareCard(e,s)}
     ${moodCard(e)}`;
@@ -966,17 +973,31 @@ const r100=v=>Math.round(v/100)*100;
 const cmpVal=(r,v)=>v==null?"—":r.money?rubShort(r100(v)):String(v);
 const cmpDiff=r=>r.d==null?"—":`${r.d>0?"+":r.d<0?"−":""}${r.money?rubShort(r100(Math.abs(r.d))):Math.abs(r.d)}`;
 function compareTarget(e){const sim=similarEvents(e);if(!sim.length)return {sim,o:null};let o=S.events.find(x=>x.id===e.compareWith&&x.id!==e.id);if(!o&&e.compareWith!=="none")o=sim[0].x;return {sim,o}}
+// вывод сравнения: больше или меньше потратили, на человека, что изменилось сильнее всего
+function compareVerdict(e,s,o){const so=settle(o),n1=e.people.length,n2=o.people.length,d=r100(s.total-so.total),p=so.total?Math.abs(s.total-so.total)*100/so.total:0;
+  const main=!d?"Вы потратили столько же, сколько тогда.":`Вы потратили ${d>0?"больше":"меньше"}: на ${rubShort(Math.abs(d))}${so.total?` (${d>0?"+":"−"}${pct(p)})`:""}.`;
+  const notes=[];
+  if(n1&&n2){const a=s.total/n1,b=so.total/n2,dp=r100(a-b);
+    notes.push(!dp?"На человека — столько же.":`На человека — ${dp>0?"больше":"меньше"} на ${rubShort(Math.abs(dp))}.`);
+    if(d>0&&dp<0&&n1>n2)notes.push("Общая сумма выросла, потому что людей стало больше.");
+    if(d<0&&dp>0&&n1<n2)notes.push("Общая сумма меньше, потому что людей было меньше.")}
+  const c1=catFact(e),c2=catFact(o),ch=CATS.map(([k,l])=>({l,d:(c1[k]||0)-(c2[k]||0)})).filter(x=>Math.abs(x.d)>=100);
+  if(ch.length>1||(ch.length===1&&ch[0].d!==s.total-so.total)){const up=ch.filter(x=>x.d>0).sort((a,b)=>b.d-a.d)[0],dn=ch.filter(x=>x.d<0).sort((a,b)=>a.d-b.d)[0];
+    if(up)notes.push(`Больше всего выросли траты: ${up.l}, +${rubShort(r100(up.d))}.`);if(dn)notes.push(`Сильнее всего снизились: ${dn.l}, −${rubShort(r100(-dn.d))}.`)}
+  return {main,notes,cls:d>0?"bad":d<0?"good":""}}
 function compareCard(e,s){
   const {sim,o}=compareTarget(e);
   if(!sim.length)return `<section class="card"><h2>Сравнить с прошлым</h2><p class="hint">Сравнивать пока не с чем: нужно ещё хотя бы одно мероприятие.</p></section>`;
   const cmpOpts=[{value:"none",label:"Не сравнивать"},...sim.map(({x,score})=>({value:x.id,label:x.name+(moodOf(x)?" "+moodOf(x)[1]:""),sub:[score?"похожее":"",x.fav?"★ избранное":"",x.date?periodRu(x):""].filter(Boolean).join(" · ")}))];
   let table="";
   if(o){const rows=compareRows(e,s,o);
-    table=`<div class="pftable cmp"><div class="pfrow head"><span></span><span><i class="colpill now">Сейчас</i></span><span><i class="colpill then">Тогда</i></span><span>Разница</span></div>
+    const vd=compareVerdict(e,s,o);
+    table=`<div class="cmp-verdict ${vd.cls}"><b>${esc(vd.main)}</b>${vd.notes.map(t=>`<span>${esc(t)}</span>`).join("")}</div>
+      <div class="pftable cmp"><div class="pfrow head"><span></span><span><i class="colpill now">Сейчас</i></span><span><i class="colpill then">Тогда</i></span><span>Разница</span></div>
       ${rows.map((r,i)=>r.sub?`<div class="cat-group"><div class="pfrow sub"><span>${r.label}</span></div>`:`<div class="pfrow${r.total?" total":""}"><span>${r.label}</span><span>${cmpVal(r,r.a)}</span><span>${cmpVal(r,r.b)}</span><span class="${r.cls||""}">${cmpDiff(r)}${r.b&&r.d?`<small>${pct(r.pc)}</small>`:""}</span></div>`).join("")}${rows.some(r=>r.sub)?"</div>":""}</div>
       <p class="hint">Синие цифры: сейчас, серые: тогда. В «Разнице» зелёный значит сейчас дешевле, красный дороже. Проценты от прошлого мероприятия.</p>
-      <div class="row-actions" style="margin-top:12px"><button class="btn ghost" id="cmpImg">Светлая картинка</button><button class="btn ghost" id="cmpImgDark">Тёмная картинка</button></div>
-      <div id="cmpImgBox" class="imgbox" hidden><img id="cmpImgOut" alt="Сравнение картинкой"><div class="row-actions"><button class="btn" id="cmpShareImg" hidden>Отправить картинку</button><button class="btn ghost" id="cmpSaveImg" hidden>Сохранить картинку</button></div><p class="empty">На телефоне можно нажать на картинку и удерживать, затем выбрать «Сохранить» или «Поделиться».</p></div>`}
+      <button type="button" class="btn ghost share-main" id="cmpImg" style="margin-top:12px">Поделиться картинкой</button>
+      <div id="cmpImgBox" class="imgbox" hidden><img id="cmpImgOut" alt="Сравнение картинкой"><div class="row-actions"><button class="btn" id="cmpShareImg" hidden>Отправить картинку</button><button class="btn ghost" id="cmpSaveImg">Сохранить картинку</button></div><p class="empty">На телефоне можно нажать на картинку и удерживать, затем выбрать «Сохранить» или «Поделиться».</p></div>`}
   return `<section class="card"><h2>Сравнить с прошлым</h2>${pickerField("cmpSel","Сравнить с",cmpOpts,o?o.id:"none")}
     ${table}</section>`;
 }
@@ -1067,29 +1088,65 @@ function fallbackCopy(t,msg){const ta=document.createElement("textarea");ta.valu
 async function shareText(t,msg,title,isUrl){
   try{if(navigator.share){await navigator.share(isUrl?{title:title||"Скинемся",url:t}:{text:t});return}}catch(err){if(err&&err.name==="AbortError")return}
   copyText(t,msg)}
-const safeFile=n=>(n||"raschet").replace(/[^\wа-яё-]+/gi,"_").slice(0,40);
+// имя файла латиницей: так его правильно сохраняют все браузеры и мессенджеры
+const TR={а:"a",б:"b",в:"v",г:"g",д:"d",е:"e",ё:"e",ж:"zh",з:"z",и:"i",й:"y",к:"k",л:"l",м:"m",н:"n",о:"o",п:"p",р:"r",с:"s",т:"t",у:"u",ф:"f",х:"h",ц:"ts",ч:"ch",ш:"sh",щ:"sch",ъ:"",ы:"y",ь:"",э:"e",ю:"yu",я:"ya"};
+const safeFile=n=>(String(n||"raschet").toLowerCase().replace(/[а-яё]/g,c=>TR[c]).replace(/[^a-z0-9-]+/g,"_").replace(/^_+|_+$/g,"")||"raschet").slice(0,40);
 async function saveFile(fname,data,type,title){
   try{const file=new File([data],fname,{type});if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:title||fname});return "Файл отправлен: "+fname}}
   catch(err){if(err&&err.name==="AbortError")return "Отменено."}
   try{const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement("a");a.href=url;a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);return "Файл скачан: "+fname}
   catch(err){return "Не удалось сохранить файл в этом браузере."}}
-// ---------- таблица для Excel (CSV: точка с запятой, запятая в дробях, UTF-8)
-const csvText=v=>{v=String(v??"");if(/^[=+\-@\t\r]/.test(v))v="'"+v;return /[";\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
-const csvNum=k=>(k/100).toFixed(2).replace(".",",");
-const csvRow=a=>a.map(x=>typeof x==="object"&&x&&"k" in x?csvNum(x.k):csvText(x)).join(";");
-function eventCSV(e){const s=settle(e),R=[];
-  R.push(csvRow(["Мероприятие",e.name]));R.push(csvRow(["Даты",periodRu(e)]));R.push(csvRow(["Потрачено, ₽",{k:s.total}]));R.push(csvRow(["Участников",String(e.people.length)]));R.push("");
-  R.push(csvRow(["Расходы"]));R.push(csvRow(["Кто платил","Сумма, ₽","Категории","За что","На кого"]));
-  e.expenses.forEach(x=>{const ps=payersOf(e,x);R.push(csvRow([ps.length>1?ps.map(p=>nameOf(e,p.id)+" "+csvNum(p.a)).join(" + "):nameOf(e,x.payer),{k:kop(x.amount)},catsLabel(x)||"Без категории",x.note||"",amongLabel(e,x)]))});
-  R.push("");R.push(csvRow(["Баланс"]));R.push(csvRow(["Участник","Доля","Заплатил, ₽","Его часть расходов, ₽","Баланс, ₽","Реквизиты"]));
-  e.people.forEach((p,i)=>R.push(csvRow([p.name,wLabel(wOf(p)),{k:s.paid[i]},{k:s.owed[i]},{k:s.bal[i]},p.pay||""])));
-  R.push("");R.push(csvRow(["Осталось перевести"]));R.push(csvRow(["Кто","Кому","Сумма, ₽","Реквизиты получателя"]));
-  s.plan.forEach(p=>R.push(csvRow([nameOf(e,p.from),nameOf(e,p.to),{k:p.a},(e.people.find(x=>x.id===p.to)||{}).pay||""])));
-  if(e.transfers.length){R.push("");R.push(csvRow(["Уже переведено"]));R.push(csvRow(["Кто","Кому","Сумма, ₽"]));e.transfers.forEach(t=>R.push(csvRow([nameOf(e,t.from),nameOf(e,t.to),{k:kop(t.amount)}])))}
-  return R.join("\r\n")}
-function allCSV(list){const R=[csvRow(["Мероприятие","Даты","Кто платил","Сумма, ₽","Категории","За что","На кого"])];
-  list.forEach(e=>e.expenses.forEach(x=>R.push(csvRow([e.name,periodRu(e),payersLabel(e,x),{k:kop(x.amount)},catsLabel(x)||"Без категории",x.note||"",amongLabel(e,x)]))));
-  return R.join("\r\n")}
+// ---------- таблица Excel (.xlsx): собираем файл сами, без внешних библиотек
+const CRC_T=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRC_T[(c^u[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0}
+function zipStore(files){const enc=new TextEncoder(),parts=[],cen=[];let off=0;
+  const u16=v=>[v&255,(v>>>8)&255],u32=v=>[v&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255];
+  files.forEach(f=>{const name=enc.encode(f.name),data=enc.encode(f.data),crc=crc32(data);
+    const head=[...u32(0x04034b50),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0)];
+    parts.push(new Uint8Array(head),name,data);
+    cen.push(new Uint8Array([...u32(0x02014b50),...u16(20),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off)]),name);
+    off+=head.length+name.length+data.length});
+  const cenSize=cen.reduce((t,x)=>t+x.length,0);
+  return new Blob([...parts,...cen,new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(files.length),...u16(files.length),...u32(cenSize),...u32(off),...u16(0)])],{type:XLSX_TYPE})}
+const XLSX_TYPE="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const xmlEsc=v=>String(v??"").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g,"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+// ячейки: строка — {t:"текст"}, деньги — {k:копейки}, жирный — b:true. Строки хранятся как текст, поэтому формулой не станут никогда
+const XS=(t,b)=>({t:String(t??""),b}),XK=(k,b)=>({k,b}),XN=n=>({n:Number(n)||0});
+function sheetXml(rows,widths){const col=i=>{let s="";i++;while(i){const m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26)}return s};
+  const body=rows.map((r,ri)=>`<row r="${ri+1}">${(r||[]).map((c,ci)=>{if(c==null)return "";const ref=col(ci)+(ri+1);
+    if("k" in c)return `<c r="${ref}" s="${c.b?3:2}"><v>${(c.k/100).toFixed(2)}</v></c>`;
+    if("n" in c)return `<c r="${ref}"><v>${c.n}</v></c>`;
+    return c.t===""?"":`<c r="${ref}" t="inlineStr"${c.b?' s="1"':""}><is><t xml:space="preserve">${xmlEsc(c.t)}</t></is></c>`}).join("")}</row>`).join("");
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"/></sheetViews><cols>${widths.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("")}</cols><sheetData>${body}</sheetData></worksheet>`}
+function makeXlsx(sheets){const nm=n=>xmlEsc(String(n).replace(/[\[\]:*?\/\\]/g," ").slice(0,31)||"Лист");
+  const files=[{name:"[Content_Types].xml",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((x,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}</Types>`},
+    {name:"_rels/.rels",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+    {name:"xl/workbook.xml",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((x,i)=>`<sheet name="${nm(x.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets></workbook>`},
+    {name:"xl/_rels/workbook.xml.rels",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((x,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("")}<Relationship Id="rId${sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`},
+    {name:"xl/styles.xml",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="4" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="4" fontId="1" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`}];
+  sheets.forEach((x,i)=>files.push({name:`xl/worksheets/sheet${i+1}.xml`,data:sheetXml(x.rows,x.widths)}));
+  return zipStore(files)}
+function eventXlsx(e){const s=settle(e),ppl=perPerson(e,s);
+  const sum=[[XS(e.name,true)],[XS("Даты"),XS(periodRu(e))],[XS("Потрачено, ₽"),XK(s.total,true)],[XS("Участников"),XN(e.people.length)],ppl?[XS(ppl.label+", ₽"),XK(ppl.v)]:null,
+    e.plan?[XS("Бюджет, ₽"),XK(kop(e.plan))]:null,roundStep(e)?[XS("Переводы округлены до, ₽"),XN(e.round)]:null,[],
+    [XS("Баланс",true)],[XS("Участник",true),XS("Доля",true),XS("Заплатил, ₽",true),XS("Его часть, ₽",true),XS("Баланс, ₽",true),XS("Реквизиты",true)],
+    ...e.people.map((p,i)=>[XS(p.name),XN(wOf(p)),XK(s.paid[i]),XK(s.owed[i]),XK(s.bal[i]),XS(p.pay||"")]),[],
+    [XS("Осталось перевести",true)],[XS("Кто",true),XS("Кому",true),XS("Сумма, ₽",true),XS("Реквизиты получателя",true)],
+    ...(s.plan.length?s.plan.map(p=>[XS(nameOf(e,p.from)),XS(nameOf(e,p.to)),XK(p.a),XS((e.people.find(x=>x.id===p.to)||{}).pay||"")]):[[XS("Все в расчёте")]])].filter(r=>r!==null);
+  const ct=catTotals(e);if(ct.rows.length){sum.push([],[XS("По категориям",true)],[XS("Категория",true),XS("Сумма, ₽",true)],...ct.rows.map(r=>[XS(r.n),XK(r.a)]))}
+  const exp=[[XS("Кто платил",true),XS("Сумма, ₽",true),XS("Категории",true),XS("За что",true),XS("На кого",true)],
+    ...e.expenses.map(x=>{const ps=payersOf(e,x);return [XS(ps.length>1?ps.map(p=>nameOf(e,p.id)+" "+num(p.a)).join(" + "):nameOf(e,x.payer)),XK(kop(x.amount)),XS(catsLabel(x)||"Без категории"),XS(x.note||""),XS(amongLabel(e,x))]}),
+    [XS("Итого",true),XK(s.total,true)]];
+  const sh=[{name:"Итог",rows:sum,widths:[26,16,16,16,16,30]},{name:"Расходы",rows:exp,widths:[24,14,24,30,30]}];
+  if(e.transfers.length)sh.push({name:"Уже переведено",rows:[[XS("Кто",true),XS("Кому",true),XS("Сумма, ₽",true)],...e.transfers.map(t=>[XS(nameOf(e,t.from)),XS(nameOf(e,t.to)),XK(kop(t.amount))])],widths:[22,22,14]});
+  return makeXlsx(sh)}
+function allXlsx(list){const tot=list.map(e=>({e,s:settle(e)}));
+  return makeXlsx([{name:"Мероприятия",rows:[[XS("Мероприятие",true),XS("Даты",true),XS("Участников",true),XS("Потрачено, ₽",true)],...tot.map(({e,s})=>[XS(e.name),XS(periodRu(e)),XN(e.people.length),XK(s.total)]),[XS("Итого",true),null,null,XK(tot.reduce((t,x)=>t+x.s.total,0),true)]],widths:[30,26,12,16]},
+    {name:"Расходы",rows:[[XS("Мероприятие",true),XS("Даты",true),XS("Кто платил",true),XS("Сумма, ₽",true),XS("Категории",true),XS("За что",true),XS("На кого",true)],...list.flatMap(e=>e.expenses.map(x=>[XS(e.name),XS(periodRu(e)),XS(payersLabel(e,x)),XK(kop(x.amount)),XS(catsLabel(x)||"Без категории"),XS(x.note||""),XS(amongLabel(e,x))]))],widths:[26,22,20,14,22,28,28]}])}
+// тема картинок: как в приложении сейчас
+function themeDark(){const t=getTheme();if(t!=="auto")return t==="dark";try{return matchMedia("(prefers-color-scheme: dark)").matches}catch(err){return false}}
+// отдать файл: сразу в меню «Поделиться», если телефон умеет; иначе вернуть false
+async function shareFile(blob,fname,type,title){try{const f=new File([blob],fname,{type});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title});return "shared"}}catch(err){if(err&&err.name==="AbortError")return "cancel"}return false}
 // ---------- ссылка на мероприятие: всё мероприятие упаковано в саму ссылку, сервер не нужен
 const b64u={enc:u8=>{let s="";for(let i=0;i<u8.length;i+=8192)s+=String.fromCharCode.apply(null,u8.subarray(i,i+8192));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")},
   dec:t=>{t=t.replace(/-/g,"+").replace(/_/g,"/");const s=atob(t);const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u}};
@@ -1132,7 +1189,7 @@ function statsCard(list){if(!list.length)return "";const st=statsOf(list);if(!st
     <h2 style="margin-top:16px">Люди: заплатил / его часть</h2>${st.people.slice(0,30).map(p=>`<div class="st-row">${ava(p.name)}<div class="main"><b>${esc(p.name)}</b><small>${p.n} ${p.n%10===1&&p.n%100!==11?"мероприятие":p.n%10>=2&&p.n%10<=4&&(p.n%100<10||p.n%100>=20)?"мероприятия":"мероприятий"}</small>
       <span class="st-bars"><i class="pd" style="width:${p.paid*100/mp}%"></i><i class="pt" style="width:${p.part*100/mp}%"></i></span></div><span class="sum">${rubShort(p.paid)}<small>${rubShort(p.part)}</small></span></div>`).join("")}
     <p class="hint" style="margin-top:8px">Синяя полоса: сколько человек заплатил сам. Жёлтая: его часть общих расходов. Люди объединены по имени.</p>
-    <button type="button" class="btn ghost" id="allCsv" style="width:100%;margin-top:12px">Таблица этих расходов для Excel</button></details>`}
+    <button type="button" class="btn ghost" id="allCsv" style="width:100%;margin-top:12px">Таблица Excel по этим мероприятиям</button></details>`}
 // ---------- напоминание о резервной копии
 function backupNag(){if(!S.events.some(e=>e.expenses.length))return "";const last=Date.parse(S.lastBackup||"")||0,now=Date.now();
   if((S.lastChange||0)<=last||now<(S.backupSnooze||0))return "";if(last&&now-last<14*864e5)return "";
@@ -1147,7 +1204,7 @@ async function compareImage(e,o,dark){
     :{bg:"#f3f3f7",card:"#ffffff",ink:"#16151c",muted:"#6c6b7a",line:"#e5e4ec",now:"#3b4bf5",nowBg:"rgba(59,75,245,.08)",then:"#8a7fa8",thenBg:"rgba(138,127,168,.10)",head:"#3b4bf5",good:"#12a150",bad:"#e5484d",totBg:"#e9ebff"};
   const F=(w,px,d)=>`${w} ${px}px ${d?'"Unbounded","Manrope",system-ui,sans-serif':'"Manrope",system-ui,-apple-system,Roboto,sans-serif'}`;
   const RH=74,SUBH=64,tableH=rows.reduce((h,r)=>h+(r.sub?SUBH:r.total?RH+14:RH),0)+80+28;
-  const H=40+300+32+tableH+60+96;
+  const H=40+300+32+tableH+60+96+150;
   const cv=document.createElement("canvas");cv.width=W;cv.height=H;const c=cv.getContext("2d");
   const rr=(x,y,w,h,r)=>{c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()};
   const circle=(x,y,r,col)=>{c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fillStyle=col;c.fill()};
@@ -1191,7 +1248,9 @@ async function compareImage(e,o,dark){
     c.fillStyle=r.cls==="good"?C.good:r.cls==="bad"?C.bad:C.ink;c.font=F(800,fs);c.fillText(cmpDiff(r),xD-(r.total?12:0),base-(r.b&&r.d?8:0));
     if(r.b&&r.d){c.font=F(700,18);c.fillText(pct(r.pc),xD-(r.total?12:0),base+16)}
     c.textAlign="left";ry+=rh});
-  c.fillStyle=C.muted;c.font=F(600,22);c.fillText("Зелёный: сейчас дешевле, красный: дороже. Проценты от прошлого мероприятия.",P,y+h+44);
+  const vd=compareVerdict(e,s,o);c.fillStyle=vd.cls==="bad"?C.bad:vd.cls==="good"?C.good:C.ink;c.font=F(800,30);c.fillText(fit(vd.main,W-2*P,F(800,30)),P,y+h+52);
+  c.fillStyle=C.muted;c.font=F(600,22);vd.notes.slice(0,3).forEach((t,i)=>c.fillText(fit(t,W-2*P,F(600,22)),P,y+h+90+i*32));
+  c.fillText("Зелёный: сейчас дешевле, красный: дороже. Проценты от прошлого мероприятия.",P,y+h+90+Math.min(3,vd.notes.length)*32);
   c.font=F(600,24);c.fillText("скинемся · посчитано "+new Date().toLocaleDateString("ru-RU"),P,H-50);
   return cv;
 }
@@ -1344,7 +1403,8 @@ function bind(e){
     if($("nagSave"))$("nagSave").onclick=()=>$("exportBtn").click();
     if($("nagLater"))$("nagLater").onclick=()=>{S.backupSnooze=Date.now()+3*864e5;save(true);render()};
     if($("statsBlock"))$("statsBlock").addEventListener("toggle",()=>{view.statsOpen=$("statsBlock").open});
-    if($("allCsv"))$("allCsv").onclick=()=>{const list=filterEvents(S.events,S.filter||{mode:"all"});saveFile(`skinemsya-vse-${localISO(new Date())}.csv`,"\ufeff"+allCSV(list),"text/csv","Скинемся: расходы").then(t=>t&&toast(t))};
+    if($("allCsv"))$("allCsv").onclick=async()=>{const list=filterEvents(S.events,S.filter||{mode:"all"}),fname=`skinemsya-vse-${localISO(new Date())}.xlsx`,blob=allXlsx(list);
+      if(await shareFile(blob,fname,XLSX_TYPE,"Скинемся: расходы"))return;const t=await saveFile(fname,blob,XLSX_TYPE,"Скинемся: расходы");if(t)toast(t)};
     document.querySelectorAll('input[name=fmode]').forEach(r=>r.onchange=()=>{setF({mode:r.value});if(r.value==="pick"&&!filterEvents(S.events,S.filter).length)openPickSheet(setF)});
     if($("pickEdit"))$("pickEdit").onclick=()=>openPickSheet(setF);
     if($("fFrom")){$("fFrom").onchange=()=>setF({from:$("fFrom").value});$("fTo").onchange=()=>setF({to:$("fTo").value})}
@@ -1454,10 +1514,22 @@ function bind(e){
     const t=`${nameOf(e,p.from)}, привет! По «${e.name}» осталось перевести ${rubShort(p.a)}. Получатель: ${nameOf(e,p.to)}.${to.pay?` Реквизиты: ${to.pay}.`:""} Спасибо!`;
     shareText(t,"Текст напоминания скопирован. Вставьте его в чат.")});
   on("[data-copy-pay]",ev=>{const to=e.people.find(x=>x.id===ev.currentTarget.dataset.copyPay);if(to&&to.pay)copyText(to.pay,`Реквизиты ${to.name} скопированы`)});
-  if($("shareLink"))$("shareLink").onclick=async()=>{const m=$("linkMsg");try{const url=await eventLink(e);
+  const doLink=async()=>{const m=$("linkMsg");try{const url=await eventLink(e);
       m.textContent=url.length>4000?`Ссылка длинная (${url.length} символов). В Telegram может не поместиться в одно сообщение. Для больших мероприятий надёжнее «Сохранить копию» на главном экране.`:"Получатель откроет ссылку и сможет добавить мероприятие к себе.";m.hidden=false;
       shareText(url,"Ссылка скопирована. Отправьте её в чат.",`«${e.name}» в «Скинемся»`,true)}catch(err){m.textContent="Не удалось сделать ссылку в этом браузере. Используйте «Сохранить копию».";m.hidden=false}};
-  if($("csvBtn"))$("csvBtn").onclick=()=>saveFile(`skinemsya-${safeFile(e.name)}.csv`,"\ufeff"+eventCSV(e),"text/csv",e.name).then(t=>{const m=$("linkMsg");if(m&&t){m.textContent=t;m.hidden=false}});
+  const doXlsx=async()=>{const fname=`skinemsya-${safeFile(e.name)}.xlsx`,blob=eventXlsx(e);const r=await shareFile(blob,fname,XLSX_TYPE,e.name);
+    if(r)return;const t=await saveFile(fname,blob,XLSX_TYPE,e.name);const m=$("linkMsg");if(m&&t){m.textContent=t;m.hidden=false}};
+  const SH_ICO={text:'<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 9h8M8 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    img:'<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="10" r="2" fill="currentColor"/><path d="m4 18 5-5 4 4 3-3 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+    link:'<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    xls:'<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 9h18M3 15h18M9 3v18" stroke="currentColor" stroke-width="2"/></svg>'};
+  if($("shareBtn"))$("shareBtn").onclick=()=>openSheet("Поделиться итогом",[
+      {value:"text",label:"Текстом",sub:"Итог сообщением в чат",icon:SH_ICO.text},
+      {value:"img",label:"Картинкой",sub:`В теме приложения: ${themeDark()?"тёмная":"светлая"}`,icon:SH_ICO.img},
+      {value:"link",label:"Ссылкой",sub:"Друг добавит мероприятие к себе",icon:SH_ICO.link},
+      {value:"xls",label:"Таблицей Excel",sub:"Файл .xlsx: итог, расходы, переводы",icon:SH_ICO.xls}],null,v=>{
+    if(v==="text")shareText(summaryText(e),"Текст итога скопирован. Вставьте его в чат.");
+    else if(v==="img")makeImg();else if(v==="link")doLink();else if(v==="xls")doXlsx()},true);
   on("[data-paid]",ev=>{const p=settle(e).plan[+ev.currentTarget.dataset.paid];if(p){e.transfers.push({id:uid(),from:p.from,to:p.to,amount:(p.a/100).toFixed(2)});commit()}});
   on("[data-more-btn]",ev=>{const b=ev.currentTarget,box=document.querySelector(`[data-more="${b.dataset.moreBtn}"]`);const open=box.hidden;
     box.hidden=!open;b.textContent=open?"Свернуть":"Ещё +"+box.children.length;b.setAttribute("aria-expanded",open);view.catsOpen=open});
@@ -1485,23 +1557,19 @@ function bind(e){
       document.querySelectorAll("[data-plancat]").forEach(i=>{if(okAmt(i.value))e.planCats[i.dataset.plancat]=i.value});commit()};
     if($("planClear"))$("planClear").onclick=()=>{e.plan="";e.planCats={};commit()}}
   if($("cmpSel"))$("cmpSel").onchange=ev=>{e.compareWith=ev.target.value;commit()};
+  // картинка: сразу в меню «Поделиться»; если телефон так не умеет — показываем её с кнопками
   const present=async(cv,ids,fname,title)=>{
-    $(ids.out).src=cv.toDataURL("image/png");$(ids.box).hidden=false;
-    const blob=await new Promise(r=>cv.toBlob(r,"image/png"));
-    const file=blob&&new File([blob],fname,{type:"image/png"});
-    try{if(file&&navigator.canShare&&navigator.canShare({files:[file]})){$(ids.share).hidden=false;$(ids.share).onclick=()=>navigator.share({files:[file],title}).catch(()=>{})}}catch(err){}
-    let dl=null;try{dl=window.claude&&window.claude.use?await window.claude.use("downloads"):null}catch(err){}
-    if(dl&&blob){$(ids.save).hidden=false;$(ids.save).onclick=()=>dl.save({filename:fname,data:blob}).catch(()=>{})}
+    const blob=await new Promise(r=>cv.toBlob(r,"image/png"));if(!blob){toast("Не удалось сделать картинку.");return}
+    const r=await shareFile(blob,fname,"image/png",title);if(r)return;
+    $(ids.out).src=URL.createObjectURL(blob);$(ids.box).hidden=false;
+    const file=new File([blob],fname,{type:"image/png"});
+    try{if(navigator.canShare&&navigator.canShare({files:[file]})){$(ids.share).hidden=false;$(ids.share).onclick=()=>navigator.share({files:[file],title}).catch(()=>{})}}catch(err){}
+    $(ids.save).onclick=()=>saveFile(fname,blob,"image/png",title).then(t=>t&&toast(t));
     $(ids.box).scrollIntoView({behavior:"smooth",block:"start"})};
-  const safeName=n=>(n||"raschet").replace(/[^\wа-яё-]+/gi,"_");
-  const makeImg=async dark=>present(await summaryImage(e,dark),{out:"imgOut",box:"imgBox",share:"shareImg",save:"saveImg"},`itog-${safeName(e.name)}.png`,e.name);
-  const makeCmpImg=async dark=>{const {o}=compareTarget(e);if(!o)return;
-    present(await compareImage(e,o,dark),{out:"cmpImgOut",box:"cmpImgBox",share:"cmpShareImg",save:"cmpSaveImg"},`sravnenie-${safeName(e.name)}.png`,e.name+" vs "+o.name)};
-  if($("cmpImg")){$("cmpImg").onclick=()=>makeCmpImg(false);$("cmpImgDark").onclick=()=>makeCmpImg(true)}
-  if($("makeImg")){$("makeImg").onclick=()=>makeImg(false);$("makeImgDark").onclick=()=>makeImg(true)}
-  if($("copy"))$("copy").onclick=()=>{const txt=summaryText(e),ta=$("shareText");ta.value=txt;
-    const fallback=()=>{ta.hidden=false;ta.focus();ta.select();$("copied").textContent="Выделите и скопируйте текст";$("copied").hidden=false};
-    try{navigator.clipboard.writeText(txt).then(()=>{$("copied").textContent="Скопировано";$("copied").hidden=false},fallback)}catch(err){fallback()}};
+  const makeImg=async()=>present(await summaryImage(e,themeDark()),{out:"imgOut",box:"imgBox",share:"shareImg",save:"saveImg"},`itog-${safeFile(e.name)}.png`,e.name);
+  const makeCmpImg=async()=>{const {o}=compareTarget(e);if(!o)return;
+    present(await compareImage(e,o,themeDark()),{out:"cmpImgOut",box:"cmpImgBox",share:"cmpShareImg",save:"cmpSaveImg"},`sravnenie-${safeFile(e.name)}.png`,e.name+" vs "+o.name)};
+  if($("cmpImg"))$("cmpImg").onclick=()=>makeCmpImg();
 }
 // ---------- резервная копия ----------
 const evWord=n=>n+" "+(n%10===1&&n%100!==11?"мероприятие":n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?"мероприятия":"мероприятий");
