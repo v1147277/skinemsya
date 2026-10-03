@@ -1,9 +1,11 @@
 // Скинемся: офлайн-режим. Приложение сохраняется на телефоне и открывается без сети.
-const CACHE = "skinemsya-v2";
+const CACHE = "skinemsya-v3";
 const SHELL = ["./", "./index.html"];
+// иконки и описание приложения: если какого-то файла нет на сайте, офлайн-режим всё равно включится
+const EXTRA = ["./manifest.webmanifest", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL).then(() => Promise.allSettled(EXTRA.map(u => c.add(u))))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", e => {
@@ -29,6 +31,12 @@ self.addEventListener("fetch", e => {
         })
         .catch(() => caches.match("./index.html").then(r => r || caches.match("./")))
     );
+    return;
+  }
+
+  // Иконки и описание приложения: из кэша, если нет сети
+  if (url.origin === location.origin && EXTRA.some(u => url.pathname.endsWith(u.slice(1)))) {
+    e.respondWith(caches.match(req).then(hit => hit || fetch(req)));
     return;
   }
 
